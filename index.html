@@ -173,6 +173,14 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 #leftHud{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 #skillBox{display:flex;align-items:center;gap:9px;padding:5px 13px 5px 5px;background:var(--ui-bg);border:1.5px solid var(--ui-line);border-radius:28px}
 #skillBox.shake{animation:shake .3s} #skillBox.pop{animation:bump .25s}
+#spSkills{display:flex;gap:7px;align-items:center}
+#spSkills:empty{display:none}
+.spBtn{--p:0;width:48px;height:48px;border-radius:50%;border:0;padding:0;cursor:pointer;display:grid;place-items:center;pointer-events:auto;
+  background:conic-gradient(var(--acc) calc(var(--p)*1%),rgba(20,22,34,.9) 0);opacity:.75;transition:opacity .15s}
+.spBtn span{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:19px;line-height:1;background:#1b1d2a;filter:grayscale(.7)}
+.spBtn.ready{opacity:1;box-shadow:0 0 0 2px #fff,0 0 16px 2px var(--acc);animation:bump .9s infinite alternate}
+.spBtn.ready span{filter:none;background:radial-gradient(circle,var(--acc) -40%,#1b1d2a 85%)}
+.spBtn.shake{animation:shake .3s}
 #btnSkill{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(#5a5670,#35324a);
   box-shadow:inset 0 0 0 2px rgba(255,255,255,.22);opacity:.75}
 #skillBox.ready #btnSkill{background:linear-gradient(#ffe08a,#ff7a2e);color:#3a1a00;opacity:1;
@@ -313,6 +321,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
       </button>
       <div class="skillMeter"><span id="skillLabel">Barrage</span><div class="skillBar"><i id="skillFill"></i></div></div>
     </div>
+    <div id="spSkills" aria-label="Special weapon skills"></div>
     <div id="pips" aria-label="Bomb charges">
       <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="11" cy="14" r="7.5" fill="#fff"/><path d="M15 8l3-3" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><circle cx="19.5" cy="3.8" r="1.8" fill="#ffb347"/></svg>
       <span id="pipRow"></span>
@@ -959,7 +968,7 @@ const el = {
   fp: $('fp'), fpCv: $('fpCv'), fpName: $('fpName'), fpMk: $('fpMk'), fpDmg: $('fpDmg'), fpHp: $('fpHp'), fpUp: $('fpUp'), fpUpL: $('fpUpL'), fpUpCost: $('fpUpCost'), fpFix: $('fpFix'), fpFixCost: $('fpFixCost'), fpDown: $('fpDown'), fpUpF: $('fpUpF'), fpSell: $('fpSell'), tip: $('tip'), toast: $('toast'), awards: $('awards'), aGrid: $('aGrid'),
   pause: $('pause'), over: $('over'), newRec: $('newRec'), oDist: $('oDist'), oWave: $('oWave'), oKills: $('oKills'), oBest: $('oBest'),
   oWaveL: $('oWaveL'), oBestL: $('oBestL'), oTip: $('oTip'), bossName: $('bossName'),
-  skillBox: $('skillBox'), btnSkill: $('btnSkill'), skillFill: $('skillFill'), skillLabel: $('skillLabel'),
+  spSkills: $('spSkills'), skillBox: $('skillBox'), btnSkill: $('btnSkill'), skillFill: $('skillFill'), skillLabel: $('skillLabel'),
   chapters: $('chapters'), chGrid: $('chGrid'), heroes: $('heroes'), hGrid: $('hGrid'), talents: $('talents'), tGrid: $('tGrid'),
   win: $('win'), winTitle: $('winTitle'), winStars: $('winStars'), winUnlocks: $('winUnlocks'), wDist: $('wDist'), wKills: $('wKills'), wHp: $('wHp'), wParts: $('wParts'),
 };
@@ -1957,6 +1966,33 @@ function elementBarrage(f, i) {
       break;
   }
 }
+function castSpecial(i) {                      // the player's tap on a special weapon's skill button
+  const f = T.floors[i];
+  if (S.mode !== 'play' || !f || !f.on || !TURRETS[f.type].sp) return;
+  const b = el.spSkills.children[spFloors().indexOf(i)];
+  if ((f.sk || 0) < 1) { sfx('deny'); if (b) nudge(b, 'shake'); return; }
+  if (!enemies.some(inView)) { sfx('deny'); if (b) nudge(b, 'shake'); floatText(T.x + 74, pivotY(i) - 34, 'No targets', '#ffd84a', 15, 1.1); return; }
+  f.sk = 0; elementBarrage(f, i);
+}
+const spFloors = () => { const a = []; T.floors.forEach((f, i) => { if (f.on && TURRETS[f.type].sp) a.push(i); }); return a; };
+const SP_ICON = { fire: '🔥', bolt: '⚡', water: '💧', earth: '⛰️', wood: '🌿' };
+function syncSpSkills() {                      // one round button per special weapon on the tower, bottom floor first
+  const fl = S.gm === 'bomb' ? [] : spFloors(), sig = fl.map(i => T.floors[i].type + i).join(',');
+  if (hud.spSig !== sig) {
+    hud.spSig = sig; hud.spP = []; el.spSkills.textContent = '';
+    for (const i of fl) {
+      const d = TURRETS[T.floors[i].type], b = document.createElement('button');
+      b.className = 'spBtn'; b.style.setProperty('--acc', d.color); b.setAttribute('aria-label', d.skill);
+      const sp = document.createElement('span'); sp.textContent = SP_ICON[d.sp]; b.appendChild(sp);
+      b.addEventListener('click', () => castSpecial(i));
+      el.spSkills.appendChild(b);
+    }
+  }
+  fl.forEach((i, k) => {
+    const q = Math.round(clamp(T.floors[i].sk || 0, 0, 1) * 50) * 2;
+    if (hud.spP[k] !== q) { hud.spP[k] = q; const b = el.spSkills.children[k]; b.style.setProperty('--p', q); b.classList.toggle('ready', q >= 100); }
+  });
+}
 function updateSurges(dt) {                    // Tidal Wave: sweeps away from the tower, hitting each ground enemy once
   for (const w of surges) {
     w.x += 640 * dt; if (w.x > w.end) w.dead = true;
@@ -1985,8 +2021,10 @@ function updateTurrets(dt) {
     const d = TURRETS[f.type], py = pivotY(i);
     if (d.sp) {
       const any = enemies.some(inView);
-      if (any || (f.sk || 0) < 1) f.sk = Math.min(1, (f.sk || 0) + dt / d.skT * (any ? 1 : 0.35));
-      if (f.sk >= 1 && any) { f.sk = 0; elementBarrage(f, i); if (S.mode !== 'play') return; }
+      if ((f.sk || 0) < 1) {                     // charges by itself; the player decides when to let it go (a button per special weapon)
+        f.sk = Math.min(1, (f.sk || 0) + dt / d.skT * (any ? 1 : 0.35));
+        if (f.sk >= 1) { sfx('ready'); floatText(px + 30, py - 34, 'SKILL READY', d.color, 15, 1.2); }
+      }
     }
     f.cd -= dt; f.acq -= dt;
     if (f.acq <= 0 || !f.tg || f.tg.dead) { if (!(f.type === 'laser' && f.tg && !f.tg.dead && Math.abs(f.tg.x - px) <= d.range + f.tg.r)) f.tg = findTarget(px, d.range, f.type); f.acq = 0.12; }
@@ -4499,6 +4537,7 @@ function syncHud() {
     hud.dots = dk; el.stageDots.textContent = '';
     if (c) for (let i = 1; i <= stagesOf(c); i++) { const d = document.createElement('i'); d.className = (i < stg ? 'on' : i === stg ? 'cur' : '') + (i === stagesOf(c) ? ' boss' : ''); el.stageDots.appendChild(d); }
   }
+  syncSpSkills();
   const sk = Math.round(S.skill * 100);
   if (hud.sk !== sk) {
     hud.sk = sk; el.skillFill.style.width = sk + '%'; el.skillBox.classList.toggle('ready', sk >= 100);
@@ -5006,7 +5045,7 @@ const ZH = {
   'Star Collector': '集星者', 'Earn 15 campaign stars': '获得 15 颗战役星', 'Exterminator': '灭绝者', 'Defeat 1,000 enemies in total': '累计击败 1000 个敌人',
   'Skyscraper': '摩天塔', 'Build the tower up to 6 floors': '把塔建到 6 层', 'Mythic Arsenal': '神话军械', 'Upgrade a weapon to Mk X': '把一件武器升到 Mk X',
   'Carpet Bomber': '地毯轰炸', 'Defeat 6 enemies with one explosion': '一次爆炸击败 6 个敌人', 'Daily Driver': '每日常客', 'Complete 3 daily challenges': '完成 3 次每日挑战',
-  'Marathon': '马拉松', 'Reach wave 20 in Endless March': '在无尽进军中到达第 20 波', 'Earned': '已获得', 'Locked': '未解锁',
+  'Marathon': '马拉松', 'Reach wave 20 in Endless March': '在无尽进军中到达第 20 波', 'Earned': '已获得', 'Locked': '未解锁', 'No targets': '没有目标',
   'Inferno Cannon': '炎龙炮', 'Storm Spire': '雷霆塔', 'Tide Cannon': '潮汐炮', 'Boulder Mortar': '岩石臼炮', 'Thorn Vine': '荆棘藤',
   'Meteor Rain': '流星火雨', 'Thunderstorm': '雷暴', 'Tidal Wave': '海啸', 'Earthquake': '地裂', 'Overgrowth': '森罗万象',
   'METEOR RAIN': '流星火雨', 'THUNDERSTORM': '雷暴', 'TIDAL WAVE': '海啸', 'EARTHQUAKE': '地裂', 'OVERGROWTH': '森罗万象',
@@ -5133,7 +5172,7 @@ resize(); newRun(); showBest();
 requestAnimationFrame(t => { lastT = t; requestAnimationFrame(frame); });
 
 if (location.hash === '#debug') {            // test hook: lets a script drive the simulation
-  window.TM = { update, tick, startRun, go, tryBuild, pickChoice, launchBomb, castSkill, persist, arsenalPower, upCost, repairCost, skillDmg,
+  window.TM = { castSpecial, update, tick, startRun, go, tryBuild, pickChoice, launchBomb, castSkill, persist, arsenalPower, upCost, repairCost, skillDmg,
     upgradeFloor, repairFloor, selectFloor, floorAt, starsFree, Ads, die, tr, applyLang, setLang(l) { LANG = l; applyLang(); }, swapFloor, sellFloor, resumeRun, savedRun, saveRun, repairAll, fixAllPlan, spits, perf, ach, dailyInfo, spawnEnemy, toWorld, syncHud, destroyFloor, resize,
     get S() { return S; }, get T() { return T; }, get choice() { return choice; }, get screen() { return screen; }, view, cam,
     enemies, coins, rockets, buildCost, bombDmg, drawHero, drawTurret, CFG, ENEMIES, TURRETS, SAVE, CHAPTERS, SKINS };
