@@ -4161,64 +4161,79 @@ function drawChassis(g, veh, sk, x, t, o) {     // the vehicle under the tower. 
     g.fillStyle = hg; g.beginPath(); g.moveTo(hx + 2, hy); g.lineTo(250, hy - 37); g.lineTo(250, 0); g.fill();
   }
 }
-function drawRealCar(g, kind, x, t, o) {         // the two named cars of the gift build, in their own paint, front facing right
-  const HT = CFG.HULL_TOP, su = kind === 'su7', R = 17, W = su ? 70 : 64;
-  const P = su ? { c: '#3d9cc2', c2: '#2a7396', hi: '#9fdcf2' } : { c: '#d3262e', c2: '#9a1820', hi: '#ff8a8a' };
+function drawRealCar(g, kind, x, t, o) {         // the two named cars of the gift build, proportions traced from side-view photos; front faces right
+  const HT = CFG.HULL_TOP, su = kind === 'su7', R = su ? 18 : 19, RX = su ? -69 : -54, FX = 86;
+  const P = su ? { c: '#3d9cc2', c2: '#2a7396', hi: '#a6e2f6' } : { c: '#d3262e', c2: '#931820', hi: '#ff9a9a' };
   const wheel = wx => {
-    g.fillStyle = '#17181f'; g.beginPath(); g.arc(wx, -R, R, 0, TAU); g.fill();
-    g.fillStyle = su ? '#2c2f3a' : '#d7dbe3'; g.beginPath(); g.arc(wx, -R, R - 4.5, 0, TAU); g.fill();
-    g.fillStyle = su ? '#4a4f62' : '#2b2d36';
-    const n = su ? 10 : 5, sw = su ? 0.12 : 0.22;
-    for (let k = 0; k < n; k++) { const a = x / R + k * TAU / n; g.beginPath(); g.moveTo(wx, -R); g.arc(wx, -R, R - 6, a - sw, a + sw); g.closePath(); g.fill(); }
-    if (su) { g.strokeStyle = '#ff9a3a'; g.lineWidth = 1.6; g.beginPath(); g.arc(wx, -R, R - 4, -2.2, -0.9); g.stroke(); }   // orange caliper
-    g.fillStyle = su ? '#8a90a8' : '#f2f4f8'; g.beginPath(); g.arc(wx, -R, 3, 0, TAU); g.fill();
+    g.fillStyle = '#16171d'; g.beginPath(); g.arc(wx, -R, R, 0, TAU); g.fill();
+    g.fillStyle = su ? '#30333f' : '#5a5e6a'; g.beginPath(); g.arc(wx, -R, R - 4, 0, TAU); g.fill();
+    const n = su ? 12 : 10, a0 = x / R;
+    g.strokeStyle = su ? '#565c72' : '#c4c9d4'; g.lineWidth = su ? 1.8 : 1.6; g.beginPath();
+    for (let k = 0; k < n; k++) {
+      const a = a0 + k * TAU / n;
+      g.moveTo(wx + Math.cos(a) * 3.5, -R + Math.sin(a) * 3.5);
+      if (su) g.quadraticCurveTo(wx + Math.cos(a + 0.35) * 9, -R + Math.sin(a + 0.35) * 9, wx + Math.cos(a + 0.6) * (R - 5), -R + Math.sin(a + 0.6) * (R - 5));
+      else g.lineTo(wx + Math.cos(a) * (R - 5), -R + Math.sin(a) * (R - 5));
+    }
+    g.stroke();
+    g.strokeStyle = su ? '#ffcf3a' : '#e8ecf4'; g.lineWidth = su ? 2 : 1.2; g.beginPath(); g.arc(wx, -R, su ? R - 3.5 : R - 4.5, su ? -2.3 : 0, su ? -1.0 : TAU); g.stroke();   // caliper / rim lip
+    g.fillStyle = '#e8ecf4'; g.beginPath(); g.arc(wx, -R, 2.6, 0, TAU); g.fill();
   };
-  if (o.blown) { wheel(-W); wheel(W); drawWreck(g); return; }
+  if (o.blown) { wheel(RX); wheel(FX); drawWreck(g); return; }
   g.fillStyle = P.c; g.beginPath();
-  if (su) {                                    // long, low four-door fastback
-    g.moveTo(-108, -12); g.quadraticCurveTo(-116, -22, -112, -32); g.quadraticCurveTo(-108, -38, -96, -40);
-    g.quadraticCurveTo(-70, -46, -54, -HT); g.lineTo(48, -HT);
-    g.quadraticCurveTo(66, -50, 80, -41); g.quadraticCurveTo(106, -37, 116, -28); g.quadraticCurveTo(121, -18, 112, -11); g.lineTo(-100, -11);
-  } else {                                     // the classic: short nose, fenders standing up round the lamps, one long curve down the back
-    g.moveTo(-104, -12); g.quadraticCurveTo(-112, -22, -108, -32); g.quadraticCurveTo(-104, -40, -92, -41);
-    g.quadraticCurveTo(-70, -44, -50, -HT); g.lineTo(42, -HT);
-    g.quadraticCurveTo(56, -51, 66, -42); g.quadraticCurveTo(80, -46, 92, -44); g.quadraticCurveTo(104, -40, 110, -30); g.quadraticCurveTo(114, -16, 104, -11); g.lineTo(-96, -11);
+  if (su) {                                    // long, low four-door: short tail, long fastback, long low hood
+    g.moveTo(-104, -11); g.quadraticCurveTo(-112, -14, -112, -24); g.lineTo(-110, -32); g.lineTo(-104, -37); g.lineTo(-96, -38);
+    g.bezierCurveTo(-82, -42, -66, -52, -48, -HT); g.lineTo(46, -HT);
+    g.quadraticCurveTo(54, -48, 62, -41);
+    g.quadraticCurveTo(88, -38, 106, -34); g.quadraticCurveTo(118, -31, 119, -22); g.quadraticCurveTo(119, -13, 112, -11);
+  } else {                                     // the classic: big tail over the engine, one arc from roof to bumper, fenders standing up round the lamps
+    g.moveTo(-100, -11); g.quadraticCurveTo(-110, -14, -110, -24); g.lineTo(-108, -32);
+    g.bezierCurveTo(-104, -42, -78, -46, -50, -HT); g.lineTo(36, -HT);
+    g.quadraticCurveTo(50, -49, 62, -42);
+    g.quadraticCurveTo(74, -41, 84, -42); g.quadraticCurveTo(98, -44, 106, -38); g.quadraticCurveTo(120, -31, 120, -21); g.quadraticCurveTo(119, -12, 110, -11);
   }
   g.closePath(); g.fill();
   g.save(); g.clip();
-  g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(-120, -HT + 2, 240, 3);                  // gloss
-  g.fillStyle = P.c2; g.fillRect(-120, -20, 240, 10);                                        // rocker shadow
-  g.fillStyle = 'rgba(255,255,255,.14)'; g.beginPath(); g.ellipse(su ? 60 : 50, -40, 40, 4, -0.08, 0, TAU); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(-120, -HT + 2, 250, 3);
+  g.fillStyle = 'rgba(255,255,255,.13)'; g.beginPath(); g.ellipse(su ? 70 : 78, -38, 36, 3.5, -0.06, 0, TAU); g.fill();
+  if (su) { g.strokeStyle = 'rgba(255,255,255,.22)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-96, -33); g.quadraticCurveTo(0, -30, 92, -27); g.stroke(); }   // waist line rising to the tail
+  g.fillStyle = '#1a1b22'; g.fillRect(-120, -17, 250, 7);                                                 // dark sill
   g.restore();
-  g.fillStyle = '#121318'; for (const wx of [-W, W]) { g.beginPath(); g.arc(wx, -R, R + 4, Math.PI, TAU); g.fill(); }   // arches
-  if (!su) { g.strokeStyle = P.c2; g.lineWidth = 2; g.beginPath(); g.arc(-W, -R, R + 8, Math.PI * 1.05, Math.PI * 1.75); g.stroke(); }   // wide rear hips
-  wheel(-W); wheel(W);
-  g.fillStyle = '#16202e';                     // rear glass and windscreen either side of the tower
-  if (su) { g.beginPath(); g.moveTo(-54, -HT + 2); g.quadraticCurveTo(-70, -46, -90, -40); g.lineTo(-54, -40); g.fill(); g.beginPath(); g.moveTo(48, -HT + 2); g.quadraticCurveTo(64, -50, 76, -42); g.lineTo(48, -42); g.fill(); }
-  else { g.beginPath(); g.moveTo(-50, -HT + 2); g.quadraticCurveTo(-68, -45, -84, -41); g.lineTo(-50, -41); g.fill(); g.beginPath(); g.moveTo(42, -HT + 2); g.quadraticCurveTo(55, -50, 62, -43); g.lineTo(42, -43); g.fill(); }
-  g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(su ? 52 : 46, -49, 9, 1.5);
-  g.strokeStyle = 'rgba(0,0,0,.3)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(su ? -40 : -26, -40); g.lineTo(su ? -40 : -26, -18); g.moveTo(su ? 34 : 32, -40); g.lineTo(su ? 34 : 32, -18); if (su) { g.moveTo(-3, -40); g.lineTo(-3, -18); } g.stroke();
-  g.fillStyle = P.hi; g.fillRect(su ? 14 : 4, -33, 12, 2);                                    // flush handles
-  if (su) {
-    g.fillStyle = '#f2fbff'; g.beginPath(); g.moveTo(112, -30); g.quadraticCurveTo(110, -37, 98, -37); g.quadraticCurveTo(94, -35, 98, -32); g.quadraticCurveTo(106, -31, 112, -30); g.fill();   // water-drop headlamp
-    glowG(g, 106, -33, 12, '#e8f6ff', 0.35);
-    g.strokeStyle = '#ff2f45'; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.arc(-104, -31, 6, -1.9, 1.7); g.stroke(); g.lineCap = 'butt';   // ring tail lamp
-    glowG(g, -106, -31, 12, '#ff2f45', 0.3);
-    g.fillStyle = '#1b1c24'; rr(g, 96, -18, 16, 4, 2); g.fill();
+  g.fillStyle = '#101116'; for (const wx of [RX, FX]) { g.beginPath(); g.arc(wx, -R, R + 3.5, Math.PI, TAU); g.fill(); }
+  if (!su) { g.strokeStyle = P.c2; g.lineWidth = 2.4; g.beginPath(); g.arc(RX, -R, R + 8, Math.PI * 1.02, Math.PI * 1.62); g.stroke(); g.beginPath(); g.arc(FX, -R, R + 6, Math.PI * 1.35, Math.PI * 1.98); g.stroke(); }   // wide hips over the arches
+  wheel(RX); wheel(FX);
+  if (su) {                                    // the long side window reaching back past the tower, chrome underline
+    g.fillStyle = '#16202e'; g.beginPath(); g.moveTo(-50, -HT + 1.5); g.bezierCurveTo(-64, -50, -76, -45, -88, -42); g.lineTo(-50, -42); g.fill();
+    g.strokeStyle = '#c9d2de'; g.lineWidth = 1; g.beginPath(); g.moveTo(-50, -42); g.lineTo(-88, -42); g.stroke();
+    g.fillStyle = '#16202e'; g.beginPath(); g.moveTo(46, -HT + 1.5); g.quadraticCurveTo(52, -49, 58, -42.5); g.lineTo(46, -42.5); g.fill();
+    g.fillStyle = '#16171d'; g.beginPath(); g.moveTo(58, -32); g.lineTo(68, -32); g.lineTo(64, -24); g.lineTo(55, -24); g.fill();     // vent behind the front wheel
   } else {
-    g.fillStyle = '#e8ecf4'; g.beginPath(); g.ellipse(88, -44, 6, 7.5, -0.25, 0, TAU); g.fill();                           // round lamp on the fender
-    g.fillStyle = '#fffbe6'; g.beginPath(); g.ellipse(88.5, -44, 4.6, 6, -0.25, 0, TAU); g.fill();
-    g.fillStyle = '#c9d4e4'; for (const [dx, dy] of [[-2, -2.5], [2, -2.5], [-2, 2.5], [2, 2.5]]) { g.beginPath(); g.arc(88.5 + dx, -44 + dy, 0.9, 0, TAU); g.fill(); }   // four-point running lights
-    glowG(g, 89, -44, 13, '#ffe9a0', 0.35);
-    g.fillStyle = '#ff2f45'; rr(g, -110, -36, 18, 3.4, 1.7); g.fill(); glowG(g, -102, -35, 12, '#ff2f45', 0.3);                // light bar across the tail
-    g.fillStyle = '#121318'; g.fillRect(-100, -41, 14, 2);                                                                      // spoiler lip
-    g.fillStyle = '#3a3d47'; rr(g, -104, -15, 7, 4, 2); g.fill(); rr(g, -96, -15, 7, 4, 2); g.fill();                           // twin exhausts
-    if (o.moving) for (let k = 0; k < 3; k++) { const u = (t * 1.1 + k / 3) % 1; g.fillStyle = 'rgba(60,60,70,' + ((1 - u) * 0.22).toFixed(3) + ')'; g.beginPath(); g.arc(-106 - u * 30, -13 - u * 10, 3 + u * 7, 0, TAU); g.fill(); }
+    g.fillStyle = '#16202e'; g.beginPath(); g.moveTo(36, -HT + 1.5); g.quadraticCurveTo(48, -49, 58, -43); g.lineTo(36, -43); g.fill();
   }
-  if (o.thorns) { g.fillStyle = '#e8c9a0'; for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(110, -24 + i * 5); g.lineTo(124, -21 + i * 5); g.lineTo(109, -18 + i * 5); g.fill(); } }
+  g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(su ? 48 : 40, -49, 7, 1.5);
+  g.strokeStyle = 'rgba(0,0,0,.3)'; g.lineWidth = 1.2; g.beginPath();
+  if (su) { g.moveTo(-36, -41); g.lineTo(-38, -18); g.moveTo(0, -41); g.lineTo(0, -18); g.moveTo(40, -41); g.lineTo(42, -20); }
+  else { g.moveTo(-22, -42); g.lineTo(-24, -18); g.moveTo(34, -42); g.lineTo(36, -20); }
+  g.stroke();
+  g.fillStyle = P.hi; if (su) { g.fillRect(-20, -36, 10, 1.8); g.fillRect(16, -36, 10, 1.8); } else g.fillRect(8, -37, 11, 1.8);   // flush handles
+  if (su) {
+    g.fillStyle = '#f2fbff'; g.beginPath(); g.moveTo(116, -29); g.quadraticCurveTo(113, -35, 100, -34.5); g.quadraticCurveTo(97, -32.5, 101, -31); g.quadraticCurveTo(110, -30, 116, -29); g.fill();   // water-drop headlamp
+    glowG(g, 108, -32, 12, '#e8f6ff', 0.35);
+    g.strokeStyle = '#ff2f45'; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.arc(-104, -29, 5.5, -1.9, 1.5); g.stroke(); g.lineCap = 'butt';   // halo tail lamp
+    glowG(g, -106, -29, 12, '#ff2f45', 0.3);
+  } else {
+    g.fillStyle = '#e8ecf4'; g.beginPath(); g.ellipse(100, -40, 5.5, 7, -0.35, 0, TAU); g.fill();                          // upright oval lamp on the fender
+    g.fillStyle = '#fffbe6'; g.beginPath(); g.ellipse(100.4, -40, 4.2, 5.6, -0.35, 0, TAU); g.fill();
+    g.fillStyle = '#b9c6da'; for (const [dx, dy] of [[-1.8, -2.4], [1.8, -2.4], [-1.8, 2.4], [1.8, 2.4]]) { g.beginPath(); g.arc(100.4 + dx, -40 + dy, 0.85, 0, TAU); g.fill(); }   // four-point running lights
+    glowG(g, 101, -40, 13, '#ffe9a0', 0.35);
+    g.fillStyle = '#ff2f45'; rr(g, -110, -34, 12, 3.2, 1.6); g.fill(); glowG(g, -106, -33, 12, '#ff2f45', 0.3);                // light bar across the tail
+    g.fillStyle = '#3a3d47'; rr(g, -106, -15, 7, 4, 2); g.fill(); rr(g, -98, -15, 7, 4, 2); g.fill();                          // twin exhausts
+    if (o.moving) for (let k = 0; k < 3; k++) { const u = (t * 1.1 + k / 3) % 1; g.fillStyle = 'rgba(60,60,70,' + ((1 - u) * 0.22).toFixed(3) + ')'; g.beginPath(); g.arc(-108 - u * 30, -13 - u * 10, 3 + u * 7, 0, TAU); g.fill(); }
+  }
+  if (o.thorns) { g.fillStyle = '#e8c9a0'; for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(116, -24 + i * 5); g.lineTo(130, -21 + i * 5); g.lineTo(115, -18 + i * 5); g.fill(); } }
   if (o.night) {
-    const hx = su ? 112 : 92, hy = su ? -33 : -44, hg = g.createLinearGradient(hx, 0, 280, 0); hg.addColorStop(0, 'rgba(255,240,200,.2)'); hg.addColorStop(1, 'rgba(255,240,200,0)');
-    g.fillStyle = hg; g.beginPath(); g.moveTo(hx, hy); g.lineTo(280, hy - 34); g.lineTo(280, 0); g.fill();
+    const hx = su ? 114 : 104, hy = su ? -31 : -40, hg = g.createLinearGradient(hx, 0, 290, 0); hg.addColorStop(0, 'rgba(255,240,200,.2)'); hg.addColorStop(1, 'rgba(255,240,200,0)');
+    g.fillStyle = hg; g.beginPath(); g.moveTo(hx, hy); g.lineTo(290, hy - 34); g.lineTo(290, 0); g.fill();
   }
 }
 function drawShipBase(g, sk, t, o) {            // a starship hovering on its own field, engines out the back
