@@ -926,11 +926,31 @@ const AudioSys = (() => {
     }
     if (tag && tag.paused) { try { const p = tag.play(); if (p && p.catch) p.catch(() => {}); } catch (_) {} }
   }
-  function env(t, dur, vol) {
+  function env(t, dur, vol, att = 0.006, pan = 0) {
     const g = ac.createGain();
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.006);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + att);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    g.connect(master); return g;
+    if (pan && ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(master); } else g.connect(master);
+    return g;
+  }
+  function roll(dur, vol, f0, f1, delay, att, pan) {   // filtered noise that swells in, rumbles in waves, and dies away slowly: the roll of thunder
+    const t = ac.currentTime + delay, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), end = t + dur * 1.6;
+    s.buffer = nbuf; s.loop = true; f.type = 'lowpass'; f.Q.value = 0.7;
+    f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(80, f1), end);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + att); g.gain.setTargetAtTime(0.0001, t + att, dur * 0.45);
+    const lfo = ac.createOscillator(), depth = ac.createGain(), m = ac.createGain();   // the rumble comes in waves: m swings 0.4..1 on top of the envelope
+    lfo.frequency.value = 2.5 + Math.random() * 3; m.gain.value = 0.7; depth.gain.value = 0.3; lfo.connect(depth); depth.connect(m.gain);
+    s.connect(f); f.connect(m); m.connect(g);
+    if (pan && ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(master); } else g.connect(master);
+    s.start(t, Math.random() * 0.5); s.stop(end); lfo.start(t); lfo.stop(end);
+  }
+  function thunder(p, short) {                 // a lightning crack, its boom, and (unless short) the roll that follows
+    noise(0.16, 0.95 * p, 7000, 1500, 'highpass');                                       // the crack
+    for (let k = 0; k < 5; k++) noise(0.045, 0.5 * p, 6000, 2500, 'highpass', 0.015 + Math.random() * 0.16);   // crackle
+    noise(0.75, 0.9 * p, 2400, 90);                                                     // the blast
+    tone('sine', 66, 24, short ? 0.55 : 1.2, 1 * p);                                    // a thump you feel more than hear
+    if (short) return;
+    [0.16, 0.48, 0.9, 1.4, 2.0].forEach((d, i) => roll(1.6 + i * 0.4, (1.05 - i * 0.15) * p, 640 - i * 90, 90, d, 0.14 + i * 0.07, (i % 2 ? 0.5 : -0.5) * (1 - i * 0.15)));
   }
   function tone(type, f0, f1, dur, vol, delay = 0) {
     const t = ac.currentTime + delay, o = ac.createOscillator();
@@ -952,6 +972,9 @@ const AudioSys = (() => {
     frost:    [0.09,  () => { tone('triangle', 1500, 700, 0.12, 0.16); tone('sine', 2400, 1800, 0.08, 0.07); }],
     tesla:    [0.08,  () => { tone('sawtooth', 900, 180, 0.14, 0.13); noise(0.12, 0.18, 5000, 2000, 'highpass'); }],
     boom:     [0.07,  () => { noise(0.4, 0.6, 1200, 80); tone('sine', 110, 30, 0.4, 0.6); }],
+    thunder:  [0.35,  () => thunder(1, false)],
+    crack:    [0.05,  () => thunder(0.5, true)],
+    storm:    [1,     () => { roll(1.1, 0.5, 120, 380, 0, 0.7, 0); tone('sawtooth', 55, 38, 1.0, 0.12); }],   // the sky darkening before the first strike
     bomb:     [0.05,  () => { noise(0.7, 0.9, 1800, 60); tone('sine', 90, 24, 0.6, 0.9); }],
     launch:   [0.04,  () => { tone('sine', 320, 90, 0.16, 0.4); noise(0.1, 0.25, 800, 300); }],
     hit:      [0.05,  () => { noise(0.04, 0.1, 1800, 900, 'bandpass'); }],
@@ -2018,8 +2041,8 @@ function elementBarrage(f, i) {
       break;
     }
     case 'bolt':                               // a strike for everything on screen, one after another
-      list.slice(0, 18).forEach((e, n) => ultFx.push({ k: 'strike', e, n, at: 0.06 + n * 0.07 + rand(0, 0.03), t: 0, dmg, dc }));
-      sfx('tesla'); break;
+      list.slice(0, 18).forEach((e, n, a) => ultFx.push({ k: 'strike', e, n, last: n === a.length - 1 && n > 0, at: 0.06 + n * 0.07 + (n === a.length - 1 && n > 0 ? 0.12 : rand(0, 0.03)), t: 0, dmg, dc }));
+      sfx('storm'); break;
     case 'water':                              // a towering wave rolls out from the tower, a second one behind it
       surges.push({ x: T.x + CFG.BASE_W / 2, end: T.x + CFG.BASE_W / 2 + 860, dmg, hit: [], dead: false, s: 1.9 });
       surges.push({ x: T.x + CFG.BASE_W / 2, end: T.x + CFG.BASE_W / 2 + 760, dmg: 0, hit: [], dead: false, s: 1.2, vis: true, delay: 0.24 });
@@ -2106,7 +2129,9 @@ function updateUlt(dt) {
       sparks(cx, cy, 12, '#fff3a8', 1.2); P(RING, cx, -2, 0, 0, 0.35, 70, '#fff3a8'); glowBurst(cx, cy, '#cfe6ff');
       ultFx.push({ k: 'beam', x: cx, y: cy, t: 0, max: 0.3, c: u.dc });
       if (!e.dead) { hurt(e, u.dmg, { kb: 20 }); e.slowT = Math.max(e.slowT, 1.2); }
-      if (u.n % 3 === 0) { S.flash = Math.max(S.flash, 0.28); sfx('tesla'); }
+      if (u.n % 3 === 0) S.flash = Math.max(S.flash, 0.28);
+      if (u.last) { S.flash = Math.max(S.flash, 0.55); S.shake = Math.max(S.shake, 0.85); bolt(cx - 40, -view.gy - 20, cx, cy, '#ffffff', 22, 0.32); }   // the storm's final, biggest strike
+      sfx(u.n % 5 === 0 || u.last ? 'thunder' : 'crack');             // every strike cracks; every fifth, and the last, bring the full roll of thunder
       S.shake = Math.max(S.shake, 0.35);
     } else if (u.k === 'quake') {             // Earthquake: a crack runs out from the tower, rocks burst up as it passes
       if (u.x < u.x1) {
