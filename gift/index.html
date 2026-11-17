@@ -182,6 +182,9 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 .spBtn.ready{opacity:1;box-shadow:0 0 0 2px #fff,0 0 16px 2px var(--acc);animation:bump .9s infinite alternate}
 .spBtn.ready span{filter:none;background:radial-gradient(circle,var(--acc) -40%,#1b1d2a 85%)}
 .spBtn.shake{animation:shake .3s}
+.spBtn{position:relative}
+.spBtn i{position:absolute;right:-5px;top:-5px;min-width:20px;height:18px;padding:0 4px;border-radius:9px;background:#fff;color:#1b1d2a;
+  font:900 11px/18px system-ui,sans-serif;font-style:normal;box-shadow:0 1px 4px rgba(0,0,0,.5)}
 #btnSkill{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(#5a5670,#35324a);
   box-shadow:inset 0 0 0 2px rgba(255,255,255,.22);opacity:.75}
 #skillBox.ready #btnSkill{background:linear-gradient(#ffe08a,#ff7a2e);color:#3a1a00;opacity:1;
@@ -2034,30 +2037,35 @@ function elementBarrage(f, i) {
       break;
   }
 }
-function castSpecial(i) {                      // the player's tap on a special weapon's skill button
+function castSpecial(i) {                      // a tap on a special weapon's skill button: every charged weapon of that kind fires together
   const f = T.floors[i];
   if (S.mode !== 'play' || !f || !f.on || !TURRETS[f.type].sp) return;
-  const b = el.spSkills.children[spFloors().indexOf(i)];
-  if ((f.sk || 0) < 1) { sfx('deny'); if (b) nudge(b, 'shake'); return; }
+  const b = el.spSkills.querySelector('[data-type="' + f.type + '"]'), same = spFloors().filter(j => T.floors[j].type === f.type);
+  const ready = same.filter(j => (T.floors[j].sk || 0) >= 1);
+  if (!ready.length) { sfx('deny'); if (b) nudge(b, 'shake'); return; }
   if (!enemies.some(inView)) { sfx('deny'); if (b) nudge(b, 'shake'); floatText(T.x + 74, pivotY(i) - 34, 'No targets', '#ffd84a', 15, 1.1); return; }
-  f.sk = 0; elementBarrage(f, i);
+  for (const j of ready) { T.floors[j].sk = 0; elementBarrage(T.floors[j], j); }
 }
 const spFloors = () => { const a = []; T.floors.forEach((f, i) => { if (f.on && TURRETS[f.type].sp) a.push(i); }); return a; };
 const SP_ICON = { fire: '🔥', bolt: '⚡', water: '💧', earth: '⛰️', wood: '🌿' };
-function syncSpSkills() {                      // one round button per special weapon on the tower, bottom floor first
-  const fl = S.gm === 'bomb' ? [] : spFloors(), sig = fl.map(i => T.floors[i].type + i).join(',');
+function syncSpSkills() {                      // one round button per kind of special weapon, ×N when the tower carries several of it
+  const live = S.gm !== 'bomb' && (S.mode === 'play' || S.mode === 'pause' || S.mode === 'choice');
+  const groups = [];                           // [type, floors] in order of the lowest floor of each kind
+  for (const i of live ? spFloors() : []) { const ty = T.floors[i].type, g = groups.find(x => x[0] === ty); if (g) g[1].push(i); else groups.push([ty, [i]]); }
+  const sig = groups.map(([ty, fl]) => ty + fl.length).join(',');
   if (hud.spSig !== sig) {
     hud.spSig = sig; hud.spP = []; el.spSkills.textContent = '';
-    for (const i of fl) {
-      const d = TURRETS[T.floors[i].type], b = document.createElement('button');
-      b.className = 'spBtn'; b.style.setProperty('--acc', wcol(T.floors[i].type)); b.setAttribute('aria-label', d.skill);
+    for (const [ty, fl] of groups) {
+      const d = TURRETS[ty], b = document.createElement('button');
+      b.className = 'spBtn'; b.dataset.type = ty; b.style.setProperty('--acc', wcol(ty)); b.setAttribute('aria-label', d.skill + (fl.length > 1 ? ' ×' + fl.length : ''));
       const sp = document.createElement('span'); sp.textContent = SP_ICON[d.sp]; b.appendChild(sp);
-      b.addEventListener('click', () => castSpecial(i));
+      if (fl.length > 1) { const n = document.createElement('i'); n.textContent = '×' + fl.length; b.appendChild(n); }
+      b.addEventListener('click', () => { const g = spFloors().find(j => T.floors[j].type === ty); if (g !== undefined) castSpecial(g); });
       el.spSkills.appendChild(b);
     }
   }
-  fl.forEach((i, k) => {
-    const q = Math.round(clamp(T.floors[i].sk || 0, 0, 1) * 50) * 2;
+  groups.forEach(([, fl], k) => {              // the ring shows the most charged weapon of the kind
+    const q = Math.round(clamp(Math.max(...fl.map(i => T.floors[i].sk || 0)), 0, 1) * 50) * 2;
     if (hud.spP[k] !== q) { hud.spP[k] = q; const b = el.spSkills.children[k]; b.style.setProperty('--p', q); b.classList.toggle('ready', q >= 100); }
   });
 }
