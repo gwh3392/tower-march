@@ -540,7 +540,7 @@ const TURRETS = {
   missile: { name: 'Missile Pod',  color: '#e9e4d4', dmg: 24,  rate: 0.85, range: 560, splash: 58, desc: 'Homing missiles with splash. Hunts flyers first.' },
   quake:   { name: 'Quake Hammer', color: '#c9a86a', dmg: 12,  rate: 0.45, range: 250, kb: 160, slow: 1.2, desc: 'Shockwave that hits and staggers every ground enemy nearby.' },
   laser:   { name: 'Laser',        color: '#ff4fd8', dmg: 2.6, rate: 10,  range: 420, desc: 'A steady beam that grows stronger the longer it holds a target.' },
-  rail:    { name: 'Railgun',      color: '#4f8cff', dmg: 70,  rate: 0.38, range: 640, desc: 'A slow, huge shot that pierces every enemy in its line.' },
+  rail:    { name: 'Railgun',      color: '#4f8cff', dmg: 70,  rate: 0.38, range: 640, sp: 'rail', sk: 85, skT: 16, skill: 'Sunpiercer', desc: 'A slow, huge shot that pierces every enemy in its line.' },
   // special weapons: one element each, bought from the special slot, and each fires its own barrage when its ring fills
   inferno: { name: 'Inferno Cannon', color: '#ff5a2a', dmg: 22, rate: 0.8,  range: 440, splash: 62, sp: 'fire',  sk: 60, skT: 15, skill: 'Meteor Rain',  desc: 'Fireballs that explode and set enemies alight.' },
   storm:   { name: 'Storm Spire',    color: '#ffe14a', dmg: 15, rate: 1.1,  range: 400, chain: 5,   sp: 'bolt',  sk: 45, skT: 14, skill: 'Thunderstorm', desc: 'Lightning that jumps across 5 enemies.' },
@@ -828,7 +828,7 @@ const ACHS = [
   { id: 'c15',    name: 'Beyond the Gate', desc: 'Clear chapter 15',                    ok: () => SAVE.cleared >= 15 },
   { id: 'c20',    name: 'Mad Rabbit Down', desc: 'Clear chapter 20',               ok: () => SAVE.cleared >= 20 },
   { id: 'c30',    name: 'Experiment Over', desc: 'Clear all 30 chapters',          ok: () => SAVE.cleared >= 30 },
-  { id: 'guns10', name: 'Full Arsenal',   desc: 'Unlock all 10 weapons',                ok: () => unlockedGuns().length >= NORMAL_IDS.length },
+  { id: 'guns10', name: 'Full Arsenal',   desc: 'Unlock all 10 weapons',                ok: () => unlockedGuns().length >= NORMAL_IDS.length && gunUnlocked('rail') },   // the nine standard guns and the railgun
   { id: 'star45', name: 'Star Hoarder',   desc: 'Earn 45 campaign stars',               ok: () => campaignStars() >= 45 },
   { id: 'newgun', name: 'Field Test',     desc: 'Build a weapon from the second arsenal', ok: () => S.mode === 'play' && T.floors.some(f => GUN_ACH[f.type]) },
   { id: 'star15', name: 'Star Collector', desc: 'Earn 15 campaign stars',               ok: () => campaignStars() >= 15 },
@@ -973,6 +973,25 @@ const AudioSys = (() => {
     if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.setValueAtTime(p0, t); p.pan.linearRampToValueAtTime(p1, t + dur); g.connect(p); p.connect(master); } else g.connect(master);
     s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
   }
+  function swell(type, f0, f1, dur, vol, delay = 0) {   // a tone that grows instead of fading, then cuts: a charge-up
+    const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.08);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.12);
+  }
+  function hum(type, f0, f1, dur, vol, delay = 0, vib = 0) {   // a held tone (fades in fast, holds, fades out over the last half second): a beam that keeps firing
+    const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.linearRampToValueAtTime(f1, t + dur);
+    if (vib) { const l = ac.createOscillator(), d = ac.createGain(); l.frequency.value = 7; d.gain.value = f0 * vib; l.connect(d); d.connect(o.frequency); l.start(t); l.stop(t + dur + 0.05); }
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.04); g.gain.setValueAtTime(vol, t + Math.max(0.05, dur - 0.5)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function hiss(dur, vol, f, type, delay = 0) {        // held filtered noise, same shape as hum
+    const t = ac.currentTime + delay, s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = nbuf; s.loop = true; fl.type = type; fl.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.05); g.gain.setValueAtTime(vol, t + Math.max(0.06, dur - 0.5)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    s.connect(fl); fl.connect(g); g.connect(master); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
+  }
   function drops(n, from, to, vol) {           // little falling 'bloops' of spray
     for (let k = 0; k < n; k++) { const f = 700 + Math.random() * 1300, d = from + Math.random() * (to - from); tone('sine', f, f * 0.45, 0.07, vol, d); }
   }
@@ -996,6 +1015,21 @@ const AudioSys = (() => {
     thunder:  [0.35,  () => thunder(1, false)],
     crack:    [0.05,  () => thunder(0.5, true)],
     tide:     [1,     () => { tidal(1, 0); tidal(0.5, 0.26); }],                     // the great wave and the smaller one behind it
+    railshot: [0.1,   () => { tone('sawtooth', 2600, 320, 0.12, 0.1); noise(0.1, 0.55, 7000, 1800, 'highpass'); tone('sine', 130, 42, 0.28, 0.6); noise(0.32, 0.35, 1900, 180); }],
+    railcharge: [1,   () => {                                                         // Sunpiercer charging: a whine climbing to a scream, crackling as it fills
+      swell('sawtooth', 150, 2100, 1.02, 0.22); swell('sine', 300, 4200, 1.02, 0.16); swell('square', 75, 110, 1.02, 0.09);   // runs into the shot, which lands about 1 s in once the slow-motion is counted
+      noise(1.04, 0.75, 280, 3800, 'bandpass', 0, 0.95);
+      for (let k = 0; k < 9; k++) noise(0.03, 0.35, 7500, 4000, 'highpass', 0.08 + Math.random() * 0.88);
+    }],
+    railfire: [1,     () => {                                                         // Sunpiercer firing: crack, blast, a metal ring, and the beam's hum
+      noise(0.2, 1, 9000, 2000, 'highpass'); noise(1.3, 1.1, 5200, 110, 'lowpass', 0, 0.01);
+      tone('sine', 58, 22, 1.3, 1.05);
+      [1230, 1847, 2771, 3690].forEach((f, k) => tone('sine', f, f * 0.985, 1.8 - k * 0.25, 0.11 - k * 0.018, 0.01));
+      const L = RAIL_SW + RAIL_FD + 0.15;                                             // the beam's hum lasts as long as the beam: two close tones beating, a high whine, the sizzle
+      hum('sawtooth', 96, 84, L, 0.15, 0, 0.02); hum('sawtooth', 99, 86, L, 0.13, 0, 0.02); hum('sine', 1480, 1320, L, 0.035, 0.05, 0.01);
+      hiss(L, 0.22, 4200, 'highpass', 0.05); hiss(L, 0.25, 260, 'lowpass', 0.05);
+    }],
+    railsweep: [0.3,  () => { noise(0.32, 0.5, 600, 3200, 'bandpass', 0, 0.12); tone('sawtooth', 280, 1300, 0.28, 0.12); tone('sine', 92, 58, 0.35, 0.45); }],   // the beam surging as it turns round
     splash:   [0.07,  () => { noise(0.25, 0.55, 2400, 450, 'bandpass'); tone('sine', 140, 60, 0.15, 0.35); drops(2, 0, 0.12, 0.1); }],
     storm:    [1,     () => { roll(1.1, 0.5, 120, 380, 0, 0.7, 0); tone('sawtooth', 55, 38, 1.0, 0.12); }],   // the sky darkening before the first strike
     bomb:     [0.05,  () => { noise(0.7, 0.9, 1800, 60); tone('sine', 90, 24, 0.6, 0.9); }],
@@ -1542,7 +1576,7 @@ function fire(f, px, py, e) {
       }
       addFx({ k: 0, x1: mx, y1: my, x2: mx + dx * len, y2: my + dy * len, life: 0.22, max: 0.22, color: d.color, w: 8 + tier * 0.5 });
       addFx({ k: 0, x1: mx, y1: my, x2: mx + dx * len, y2: my + dy * len, life: 0.16, max: 0.16, color: '#ffffff', w: 3 + tier * 0.2 });
-      S.shake = Math.max(S.shake, 0.14); sfx('cannon'); break;
+      S.shake = Math.max(S.shake, 0.14); sfx('railshot'); break;
     }
     case 'inferno':
       shots.push({ k: 'shell', el: 'fire', x: mx, y: my, vx: Math.cos(a) * 560, vy: Math.sin(a) * 560, dmg: st.dmg, rad: d.splash, burn: st.dmg * 0.5, ...fireLook(), tier, life: 1.6, tr: 0, dead: false });
@@ -2071,6 +2105,9 @@ function elementBarrage(f, i) {
       surges.push({ x: T.x + CFG.BASE_W / 2, end: T.x + CFG.BASE_W / 2 + 760, dmg: 0, hit: [], dead: false, s: 1.2, vis: true, delay: 0.24 });
       for (let k = 0; k < 24; k++) P(DOT, T.x + 60 + rand(0, 60), -rand(10, 120), rand(80, 320), rand(-420, -120), rand(0.5, 0.9), rand(3, 7), '#d8f2ff', 800);
       sfx('tide'); break;
+    case 'rail':                               // Sunpiercer: the railgun drinks in light, then one beam sweeps from the sky down across the field
+      ultFx.push({ k: 'rail', i, t: 0, max: 9, dmg, col: dc, hit: [], fired: false, a: -0.55, a0: -0.55, a1: 0.3 });
+      sfx('railcharge'); break;
     case 'earth':                              // a crack runs from the tower to the edge of the screen; every walker it passes is thrown up on rock
       ultFx.push({ k: 'quake', x0: T.x + CFG.BASE_W / 2, x: T.x + CFG.BASE_W / 2, x1: cam.x + view.w + 60, next: T.x + CFG.BASE_W / 2 + 60, dmg, hit: [], t: 0, max: 9, seed: Math.random() });
       S.shake = Math.max(S.shake, 0.9); sfx('boom'); break;
@@ -2098,7 +2135,7 @@ function castSpecial(i) {                      // a tap on a special weapon's sk
   for (const j of ready) { T.floors[j].sk = 0; elementBarrage(T.floors[j], j); }
 }
 const spFloors = () => { const a = []; T.floors.forEach((f, i) => { if (f.on && TURRETS[f.type].sp) a.push(i); }); return a; };
-const SP_ICON = { fire: '🔥', bolt: '⚡', water: '💧', earth: '⛰️', wood: '🌿' };
+const SP_ICON = { fire: '🔥', bolt: '⚡', water: '💧', earth: '⛰️', wood: '🌿', rail: '💠' };
 function syncSpSkills() {                      // one round button per kind of special weapon, ×N when the tower carries several of it
   const live = S.gm !== 'bomb' && (S.mode === 'play' || S.mode === 'pause' || S.mode === 'choice');
   const groups = [];                           // [type, floors] in order of the lowest floor of each kind
@@ -2138,7 +2175,11 @@ function updateSurges(dt) {                    // Tidal Wave: sweeps away from t
 // ---- special weapon skills: the big moment. A cut-in banner, the screen in the element's light, and each element's own spectacle. ----
 const ultFx = [];                              // world-space pieces: meteor pillars, timed lightning, the quake front, rock spikes, vines, the tower's glow
 let ult = null;                                // screen-space: banner and tint of the latest skill
+let bannerAt = -1e9;                           // when the stage title last appeared: the skill banner steps aside while it shows
 const easeOut = t => 1 - Math.pow(1 - clamp(t, 0, 1), 3);
+const easeInOut = t => { t = clamp(t, 0, 1); return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; };
+const RAIL_PASS = [0.85, 0.75, 0.75];          // Sunpiercer sweeps: down across the field, back up, and down again
+const RAIL_CH = 0.75, RAIL_SW = RAIL_PASS.reduce((a, b) => a + b, 0), RAIL_FD = 0.45;   // charge, sweeping and fade times
 function ultStart(el, col, name) { ult = { el, col, name, t: 0, max: 1.7 }; }
 function updateUlt(dt) {
   if (ult) { ult.t += dt; if (ult.t > ult.max) ult = null; }
@@ -2156,6 +2197,57 @@ function updateUlt(dt) {
       if (u.last) { S.flash = Math.max(S.flash, 0.55); S.shake = Math.max(S.shake, 0.85); bolt(cx - 40, -view.gy - 20, cx, cy, '#ffffff', 22, 0.32); }   // the storm's final, biggest strike
       sfx(u.n % 5 === 0 || u.last ? 'thunder' : 'crack');             // every strike cracks; every fifth, and the last, bring the full roll of thunder
       S.shake = Math.max(S.shake, 0.35);
+    } else if (u.k === 'rail') {              // Sunpiercer: charge, then the sweep, then the beam fades
+      const f = T.floors[u.i];
+      if (!f || !f.on || f.type !== 'rail') { u.dead = true; continue; }
+      const px = T.x + 44, py = pivotY(u.i), m = muzzleLen('rail', f.lv);
+      f.cd = Math.max(f.cd, 0.3);                // no ordinary shots while the skill runs
+      if (u.t < RAIL_CH) {                       // light streams into the muzzle while the barrel lifts to the sky, above the highest flier
+        if (u.aim === undefined) { u.aim = u.a0; for (const e of enemies) if (inView(e)) u.aim = Math.min(u.aim, Math.atan2(ey(e) - py, e.x - px) - 0.12); u.aim = Math.max(-1.45, u.aim); u.ang = f.angle; }
+        u.ang = angLerp(u.ang, u.aim, 1 - Math.exp(-dt * 8)); f.angle = u.ang;   // the skill holds the barrel; normal aiming would pull it back down
+        const mx = px + Math.cos(f.angle) * m, my = py + Math.sin(f.angle) * m;
+        for (let k = 0; k < 3; k++) { const a = rand(TAU), r = rand(60, 150); P(DOT, mx + Math.cos(a) * r, my + Math.sin(a) * r, -Math.cos(a) * r * 3.2, -Math.sin(a) * r * 3.2, 0.3, rand(2, 4), k ? u.col : '#ffffff', 0); }
+        continue;
+      }
+      const span = () => {                       // each sweep runs from above the highest enemy on screen to past the lowest
+        let amax = 0.3, amin = Math.min(-0.55, u.aim === undefined ? -0.55 : u.aim);
+        for (const e of enemies) if (inView(e)) { const ae = Math.atan2(ey(e) - py, e.x - px); amax = Math.max(amax, ae + 0.1); amin = Math.min(amin, ae - 0.12); }
+        u.a0 = Math.max(-1.45, amin); u.a1 = Math.min(1.25, amax);
+      };
+      if (!u.fired) {                            // the shot
+        u.fired = true; span(); u.a = u.a0; u.pass = 0;
+        S.flash = Math.max(S.flash, 0.55); S.shake = Math.max(S.shake, 0.95); f.recoil = 1; sfx('railfire');
+        P(RING, px, py, 0, 0, 0.5, 150, '#ffffff'); P(RING, px, py, 0, 0, 0.85, 280, u.col);
+      }
+      const st = u.t - RAIL_CH;
+      if (st < RAIL_SW) {
+        let k = 0, s0 = 0; while (k < RAIL_PASS.length - 1 && st >= s0 + RAIL_PASS[k]) { s0 += RAIL_PASS[k]; k++; }
+        if (u.pass !== k) {                      // turning round: a fresh sweep, everything can be hit again
+          u.pass = k; u.hit = []; span(); sfx('railsweep');
+          S.flash = Math.max(S.flash, 0.25); P(RING, px, py, 0, 0, 0.45, 160, u.col);
+        }
+        const from = k % 2 ? u.a1 : u.a0, to = k % 2 ? u.a0 : u.a1;
+        const prev = u.a; u.a = lerp(from, to, easeInOut((st - s0) / RAIL_PASS[k])); f.angle = u.a;
+        const lo = Math.min(prev, u.a), hi = Math.max(prev, u.a);
+        for (const e of enemies) {
+          if (e.dead || u.hit.includes(e) || !inView(e)) continue;
+          const ae = Math.atan2(ey(e) - py, e.x - px), tol = ((e.fly ? e.r : e.h * 0.5) + 6) / Math.max(40, Math.hypot(e.x - px, ey(e) - py));
+          if (ae >= lo - tol && ae <= hi + tol) {
+            u.hit.push(e); hurt(e, u.dmg * 0.5, { kb: 110, blast: true });   // three sweeps at half damage each
+            sparks(e.x, ey(e), 10, '#ffffff', 1.1); glowBurst(e.x, ey(e), u.col); P(RING, e.x, ey(e), 0, 0, 0.3, 54, u.col);
+          }
+        }
+        const dy = Math.sin(u.a);                // where the beam meets the road it burns a furrow
+        if (dy > 0.02) {
+          const gx = px + Math.cos(u.a) * (-py / dy);
+          if (gx < cam.x + view.w + 40) {
+            P(FIRE, gx + rand(-8, 8), -2, rand(-40, 40), rand(-170, -60), 0.4, rand(8, 14), null);
+            if (Math.random() < 0.5) P(DEBRIS, gx, -2, rand(-130, 130), rand(-320, -120), 0.6, rand(3, 5), '#5a5560', 900);
+            if (Math.random() < 0.4) decal(gx, rand(-2, 4), 16, '#000000', 0.4);
+          }
+        }
+        S.shake = Math.max(S.shake, 0.38);
+      } else { f.angle = u.a; if (st > RAIL_SW + RAIL_FD) u.dead = true; }
     } else if (u.k === 'quake') {             // Earthquake: a crack runs out from the tower, rocks burst up as it passes
       if (u.x < u.x1) {
         const nx = Math.min(u.x1, u.x + 1150 * dt);
@@ -2195,7 +2287,29 @@ function drawUltBack() {                       // under the tower and the enemie
 function drawUlt() {                           // in front of everything in the world
   for (const u of ultFx) {
     const q = u.t / u.max;
-    if (u.k === 'beam') {                      // the column of light a lightning strike leaves behind
+    if (u.k === 'rail') {                      // Sunpiercer: the gathering orb, then the beam
+      const f = T.floors[u.i]; if (!f) continue;
+      const px = T.x + 44, py = pivotY(u.i), m = muzzleLen('rail', f.lv), a = f.angle, mx = px + Math.cos(a) * m, my = py + Math.sin(a) * m;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      if (u.t < RAIL_CH) {
+        const cq = u.t / RAIL_CH, r = 8 + 26 * cq + Math.sin(realT * 40) * 2;
+        const g = ctx.createRadialGradient(mx, my, 0, mx, my, r * 2.2); g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(0.35, hexA(u.col, 0.8)); g.addColorStop(1, hexA(u.col, 0));
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, r * 2.2, 0, TAU); ctx.fill();
+        ctx.strokeStyle = hexA(u.col, 0.7 * cq); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(mx, my, 110 * (1 - cq) + r, 0, TAU); ctx.stroke();   // a ring closing in
+      } else {
+        const st = u.t - RAIL_CH, fade = st < RAIL_SW ? 1 : clamp(1 - (st - RAIL_SW) / RAIL_FD, 0, 1);
+        const dx = Math.cos(a), dy = Math.sin(a); let L = 2600; if (dy > 0.02) L = Math.min(L, -my / dy);
+        const ex = mx + dx * L, ey2 = my + dy * L, w = (34 + Math.sin(realT * 60) * 4) * (0.35 + 0.65 * fade);
+        ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(ex, ey2);
+        ctx.strokeStyle = hexA(u.col, 0.35 * fade); ctx.lineWidth = w * 2.3; ctx.stroke();
+        ctx.strokeStyle = hexA(u.col, 0.85 * fade); ctx.lineWidth = w; ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.95 * fade).toFixed(3) + ')'; ctx.lineWidth = w * 0.4; ctx.stroke();
+        const g = ctx.createRadialGradient(mx, my, 0, mx, my, 80); g.addColorStop(0, 'rgba(255,255,255,' + (0.9 * fade).toFixed(3) + ')'); g.addColorStop(1, hexA(u.col, 0));
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, 80, 0, TAU); ctx.fill();
+        if (dy > 0.02) { const g2 = ctx.createRadialGradient(ex, ey2, 0, ex, ey2, 100); g2.addColorStop(0, hexA('#ffe9c0', 0.9 * fade)); g2.addColorStop(1, hexA(u.col, 0)); ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(ex, ey2, 100, 0, TAU); ctx.fill(); }
+      }
+      ctx.restore();
+    } else if (u.k === 'beam') {               // the column of light a lightning strike leaves behind
       const a = 1 - q, top = -view.gy - 20, w = 26 * (1 - q * 0.6);
       const g = ctx.createLinearGradient(u.x - w, 0, u.x + w, 0); g.addColorStop(0, hexA(u.c, 0)); g.addColorStop(0.5, 'rgba(255,255,255,' + (0.85 * a).toFixed(3) + ')'); g.addColorStop(1, hexA(u.c, 0));
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(u.x - w, top, w * 2, u.y - top + 8);
@@ -2237,20 +2351,20 @@ function drawUlt() {                           // in front of everything in the 
     }
   }
 }
-const ULT_TINT = { fire: '255,70,20', bolt: '20,30,80', water: '40,110,220', earth: '120,80,40', wood: '50,170,70' };
+const ULT_TINT = { fire: '255,70,20', bolt: '20,30,80', water: '40,110,220', earth: '120,80,40', wood: '50,170,70', rail: '14,28,70' };
 function drawUltScreen() {                     // screen space: the element's light, the storm clouds, and the banner
   if (!ult) return;
   const t = ult.t, a = t < 0.15 ? t / 0.15 : clamp(1 - (t - 0.15) / (ult.max - 0.15), 0, 1), W = view.w, H = view.h;
-  const g = ctx.createLinearGradient(0, 0, 0, H), tc = ULT_TINT[ult.el] || '255,255,255', dark = ult.el === 'bolt';
+  const g = ctx.createLinearGradient(0, 0, 0, H), tc = ULT_TINT[ult.el] || '255,255,255', dark = ult.el === 'bolt' || ult.el === 'rail';
   g.addColorStop(0, 'rgba(' + tc + ',' + ((dark ? 0.62 : 0.42) * a).toFixed(3) + ')'); g.addColorStop(1, 'rgba(' + tc + ',' + ((dark ? 0.3 : 0.12) * a).toFixed(3) + ')');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  if (dark) {                                  // storm clouds rolling over the top of the screen
+  if (ult.el === 'bolt') {                     // storm clouds rolling over the top of the screen
     ctx.fillStyle = 'rgba(28,30,48,' + (0.85 * a).toFixed(3) + ')';
     for (let k = 0; k < 9; k++) { const cx = ((k * 157 + realT * 40) % (W + 200)) - 100; ctx.beginPath(); ctx.ellipse(cx, 18 + (k % 3) * 14, 120, 46, 0, 0, TAU); ctx.fill(); }
     if (Math.sin(realT * 23) > 0.86) { ctx.fillStyle = 'rgba(200,220,255,' + (0.18 * a).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
   }
   if (t < 1.25) {                              // the banner sweeps in, holds, and fades
-    const inT = easeOut(t / 0.16), out = t > 0.95 ? 1 - (t - 0.95) / 0.3 : 1, cy = H * 0.24, bh = 70, off = (1 - inT) * -W;
+    const inT = easeOut(t / 0.16), out = t > 0.95 ? 1 - (t - 0.95) / 0.3 : 1, cy = H * (performance.now() - bannerAt < 2500 ? 0.47 : 0.24), bh = 70, off = (1 - inT) * -W;
     ctx.save(); ctx.globalAlpha = clamp(out, 0, 1); ctx.translate(off, 0);
     const bg = ctx.createLinearGradient(0, 0, W, 0); bg.addColorStop(0, hexA(ult.col, 0)); bg.addColorStop(0.2, hexA(ult.col, 0.88)); bg.addColorStop(0.8, hexA(ult.col, 0.88)); bg.addColorStop(1, hexA(ult.col, 0));
     ctx.fillStyle = 'rgba(10,8,20,.55)'; ctx.beginPath(); ctx.moveTo(-40, cy - bh / 2 - 6); ctx.lineTo(W + 40, cy - bh / 2 - 18); ctx.lineTo(W + 40, cy + bh / 2 - 6); ctx.lineTo(-40, cy + bh / 2 + 6); ctx.fill();
@@ -4840,7 +4954,7 @@ function nudge(node, cls) { node.classList.remove(cls); void node.offsetWidth; n
 function banner(text, sub, boss) {
   el.banner.textContent = text;
   if (sub) { const s = document.createElement('small'); s.textContent = sub; el.banner.appendChild(s); }
-  el.banner.classList.toggle('boss', !!boss); nudge(el.banner, 'show');
+  el.banner.classList.toggle('boss', !!boss); nudge(el.banner, 'show'); bannerAt = performance.now();
 }
 
 // card icons are drawn in code, like everything else
@@ -5506,8 +5620,8 @@ const ZH = {
   'Blue Flame': '蓝焰', 'Violet Storm': '紫电', 'Abyss Tide': '深渊潮', 'Jade Stone': '翡翠岩', 'Sakura': '樱花',
   'Crawler': '履带车', 'Battle Tank': '主战坦克', 'Starship': '星际飞船', 'No targets': '没有目标',
   'Inferno Cannon': '炎龙炮', 'Storm Spire': '雷霆塔', 'Tide Cannon': '潮汐炮', 'Boulder Mortar': '岩石臼炮', 'Thorn Vine': '荆棘藤',
-  'Meteor Rain': '流星火雨', 'Thunderstorm': '雷暴', 'Tidal Wave': '沧海横流', 'Earthquake': '地裂', 'Overgrowth': '森罗万象',
-  'METEOR RAIN': '流星火雨', 'THUNDERSTORM': '雷暴', 'TIDAL WAVE': '沧海横流', 'EARTHQUAKE': '地裂', 'OVERGROWTH': '森罗万象',
+  'Meteor Rain': '流星火雨', 'Thunderstorm': '雷暴', 'Tidal Wave': '沧海横流', 'Earthquake': '地裂', 'Overgrowth': '森罗万象', 'Sunpiercer': '白虹贯日',
+  'METEOR RAIN': '流星火雨', 'THUNDERSTORM': '雷暴', 'TIDAL WAVE': '沧海横流', 'EARTHQUAKE': '地裂', 'OVERGROWTH': '森罗万象', 'SUNPIERCER': '白虹贯日',
   'Fireballs that explode and set enemies alight.': '会爆炸的火球，点燃敌人。', 'Lightning that jumps across 5 enemies.': '闪电在 5 个敌人之间跳跃。',
   'A water jet through the whole line. Pushes back and slows.': '贯穿一整排的水柱，击退并减速。', 'Huge boulders with a wide blast that staggers.': '巨石大范围爆炸，震慑敌人。',
   'Rapid thorns that poison their target.': '连射毒刺，让目标中毒。',
@@ -5631,7 +5745,7 @@ resize(); newRun(); showBest();
 requestAnimationFrame(t => { lastT = t; requestAnimationFrame(frame); });
 
 if (location.hash === '#debug') {            // test hook: lets a script drive the simulation
-  window.TM = { castSpecial, renderShop, earnTokens, SHOP, TOWER_SKINS, drawRigPreview, update, tick, startRun, go, tryBuild, pickChoice, launchBomb, castSkill, persist, arsenalPower, upCost, repairCost, skillDmg,
+  window.TM = { sfx, castSpecial,renderShop, earnTokens, SHOP, TOWER_SKINS, drawRigPreview, update, tick, startRun, go, tryBuild, pickChoice, launchBomb, castSkill, persist, arsenalPower, upCost, repairCost, skillDmg,
     upgradeFloor, repairFloor, selectFloor, floorAt, starsFree, Ads, die, tr, applyLang, setLang(l) { LANG = l; applyLang(); }, swapFloor, sellFloor, resumeRun, savedRun, saveRun, repairAll, fixAllPlan, spits, perf, ach, dailyInfo, spawnEnemy, toWorld, syncHud, destroyFloor, resize,
     get S() { return S; }, get T() { return T; }, get choice() { return choice; }, get screen() { return screen; }, view, cam,
     enemies, coins, rockets, buildCost, bombDmg, drawHero, drawTurret, CFG, ENEMIES, TURRETS, SAVE, CHAPTERS, SKINS };
