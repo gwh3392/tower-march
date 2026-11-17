@@ -802,6 +802,7 @@ const wpal = t => { const pp = WPAL[t]; if (!pp) return null; const alt = wPrevi
 const wcol = t => { const pp = wpal(t); return pp ? pp.col : TURRETS[t].color; };
 const fireLook = () => { const W = wpal('inferno'); return { c1: W.col, c2: W.hot, alt: !!SAVE.shop.wsk.inferno }; };
 const TSK = () => TOWER_SKINS.find(k => k.id === SAVE.shop.tower) || TOWER_SKINS[0];
+const NATION_FLAG = false;                     // true only in the private gift build: the roof flies the national flag instead of the game's banner
 const SHOP = [];
 for (const k of TOWER_SKINS) SHOP.push({ id: 't_' + k.id, tab: 'tower', name: k.name, cost: k.cost, val: k.id, sk: k });
 for (const t of ['inferno', 'storm', 'tide', 'terra', 'grove']) { SHOP.push({ id: 'w_' + t + '_0', tab: 'weapon', name: 'Standard', cost: 0, type: t, alt: false }); SHOP.push({ id: 'w_' + t, tab: 'weapon', name: WSKIN_NAMES[t], cost: WSKIN_COST, type: t, alt: true }); }
@@ -4603,14 +4604,32 @@ function drawTower() {
   ctx.restore();
   ctx.strokeStyle = '#d8dbe8'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-38, y0 - 2); ctx.lineTo(-38, y0 - 56); ctx.stroke();
   const wave = u => Math.sin(realT * 6 + u * 5) * 4 * u, fw = 36;
-  ctx.fillStyle = '#de2910'; ctx.beginPath(); ctx.moveTo(-38, y0 - 56);
-  for (let s = 1; s <= 6; s++) { const u = s / 6; ctx.lineTo(-38 - fw * u, y0 - 56 + wave(u)); }
-  for (let s = 6; s >= 0; s--) { const u = s / 6; ctx.lineTo(-38 - fw * u, y0 - 36 + wave(u)); }
-  ctx.fill();
-  ctx.fillStyle = '#ffde00';                                         // five stars in the hoist-side upper corner
-  const fstar = (dx, dy, r, rot) => { ctx.save(); ctx.translate(-38 - dx, y0 - 56 + dy + wave(dx / fw)); ctx.rotate(rot); starPath(ctx, 5, r, r * 0.4); ctx.fill(); ctx.restore(); };
-  fstar(6.5, 5.5, 4, 0);
-  [[12.5, 2], [15.2, 4.4], [15.2, 7.8], [12.5, 10.2]].forEach(p => fstar(p[0], p[1], 1.5, Math.atan2(5.5 - p[1], p[0] - 6.5) + Math.PI / 2));
+  if (NATION_FLAG) {                           // (private build only) the national flag
+    ctx.fillStyle = '#de2910'; ctx.beginPath(); ctx.moveTo(-38, y0 - 56);
+    for (let s = 1; s <= 6; s++) { const u = s / 6; ctx.lineTo(-38 - fw * u, y0 - 56 + wave(u)); }
+    for (let s = 6; s >= 0; s--) { const u = s / 6; ctx.lineTo(-38 - fw * u, y0 - 36 + wave(u)); }
+    ctx.fill();
+    ctx.fillStyle = '#ffde00';                                       // five stars in the hoist-side upper corner
+    const fstar = (dx, dy, r, rot) => { ctx.save(); ctx.translate(-38 - dx, y0 - 56 + dy + wave(dx / fw)); ctx.rotate(rot); starPath(ctx, 5, r, r * 0.4); ctx.fill(); ctx.restore(); };
+    fstar(6.5, 5.5, 4, 0);
+    [[12.5, 2], [15.2, 4.4], [15.2, 7.8], [12.5, 10.2]].forEach(p => fstar(p[0], p[1], 1.5, Math.atan2(5.5 - p[1], p[0] - 6.5) + Math.PI / 2));
+  } else {                                     // the tower's own war banner: an orange swallowtail with a white tower on it
+    const pen = (top, bot, notch) => {
+      ctx.beginPath(); ctx.moveTo(-38, y0 - 56 + top);
+      for (let s = 1; s <= 6; s++) { const u = s / 6; ctx.lineTo(-38 - fw * u, y0 - 56 + top + wave(u)); }
+      ctx.lineTo(-38 - fw * notch, y0 - 46 + wave(notch));         // the swallowtail cut
+      for (let s = 6; s >= 0; s--) { const u = s / 6; ctx.lineTo(-38 - fw * u, y0 - 56 + bot + wave(u)); }
+      ctx.closePath(); ctx.fill();
+    };
+    ctx.fillStyle = '#f07a2a'; pen(0, 20, 0.74);
+    ctx.save(); ctx.beginPath(); ctx.rect(-38 - fw - 2, y0 - 41, fw + 4, 6); ctx.clip(); ctx.fillStyle = '#b8471a'; pen(0, 20, 0.74); ctx.restore();   // darker band along the foot
+    ctx.save(); ctx.translate(-38 - 11, y0 - 47 + wave(11 / fw) * 0.9);   // the emblem: a little white tower with battlements and a door
+    ctx.fillStyle = '#fff6e6';
+    ctx.fillRect(-4, -4, 8, 10);
+    for (const bx of [-4, -1, 2]) ctx.fillRect(bx, -6.5, 2, 2.6);
+    ctx.fillStyle = '#b8471a'; ctx.fillRect(-1.2, 2.2, 2.4, 3.8);
+    ctx.restore();
+  }
   ctx.restore();
 }
 
