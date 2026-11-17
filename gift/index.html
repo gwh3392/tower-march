@@ -6,16 +6,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#1a1226">
-<meta name="description" content="Tower March: roll a turret tower through 10 chapters of zombies. Build floors, upgrade weapons, drop bombs. Free, no install.">
+<meta name="description" content="Zombie Tower March: roll a turret tower through 30 chapters of zombies. Build floors, upgrade weapons, drop bombs. Free, no install.">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Tower March">
-<meta property="og:title" content="Tower March">
-<meta property="og:description" content="Roll a turret tower through 10 chapters of zombies. Build floors, upgrade weapons, drop bombs.">
+<meta name="apple-mobile-web-app-title" content="Zombie Tower March">
+<meta property="og:title" content="Zombie Tower March">
+<meta property="og:description" content="Roll a turret tower through 30 chapters of zombies. Build floors, upgrade weapons, drop bombs.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23a8436f'/%3E%3Crect x='20' y='14' width='24' height='12' rx='2' fill='%23a9afc2'/%3E%3Crect x='20' y='27' width='24' height='12' rx='2' fill='%239aa0b5'/%3E%3Crect x='38' y='17' width='16' height='5' rx='2' fill='%23ffd84a'/%3E%3Crect x='38' y='30' width='16' height='5' rx='2' fill='%23ff6b57'/%3E%3Crect x='12' y='40' width='40' height='12' rx='6' fill='%231d1e27'/%3E%3Ccircle cx='22' cy='46' r='4' fill='%235c6076'/%3E%3Ccircle cx='32' cy='46' r='4' fill='%235c6076'/%3E%3Ccircle cx='42' cy='46' r='4' fill='%235c6076'/%3E%3C/svg%3E">
-<title>Tower March</title>
+<title>Zombie Tower March</title>
 <style>
 :root{
   --ui-bg:rgba(24,16,36,.62); --ui-line:rgba(255,255,255,.16);
@@ -123,6 +123,8 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 @keyframes pop{0%{opacity:0;transform:scale(.9) translateY(10px)}}
 .title{margin:0;font-size:clamp(46px,13vw,104px);line-height:.88;font-weight:900;letter-spacing:.02em;text-transform:uppercase;
   text-shadow:0 4px 0 var(--title-edge),0 9px 0 rgba(0,0,0,.35)}
+@media (max-height:440px){.title .kick{font-size:.34em!important}}
+.title .kick{display:block;font-size:.42em;line-height:1.05;letter-spacing:.22em;color:#9dff8a;text-shadow:0 3px 0 #1f5a2a,0 6px 0 rgba(0,0,0,.35)}
 .big{margin:0;font-size:clamp(28px,7vw,52px);font-weight:900;text-transform:uppercase;letter-spacing:.03em;text-shadow:0 3px 0 rgba(0,0,0,.4)}
 .sub{margin:6px 0 0;font-size:15px;font-weight:700;opacity:.9}
 .how{list-style:none;margin:18px auto 0;padding:12px 16px;max-width:440px;text-align:left;font-size:15px;line-height:1.35;
@@ -305,7 +307,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 </style>
 </head>
 <body>
-<canvas id="game" aria-label="Tower March battlefield"></canvas>
+<canvas id="game" aria-label="Zombie Tower March battlefield"></canvas>
 
 <div id="ui" class="inmenu">
   <div id="top" class="hud">
@@ -371,7 +373,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 
   <div id="start" class="overlay on">
     <div class="panel">
-      <h1 class="title">Tower<br>March</h1>
+      <h1 class="title"><span class="kick">Zombie</span>Tower<br>March</h1>
       <ul class="how">
         <li>Your tower rolls forward and its turrets fire on their own.</li>
         <li><b>Tap anywhere</b> to lob a bomb. Fill the bar to unleash <b>Barrage</b>.</li>
@@ -5786,7 +5788,7 @@ function trTree(root) {
 }
 const HOW_EN = document.querySelector('.how').innerHTML;
 const HOW_ZH = '<li>高塔自动前进，炮塔自动开火。</li><li><b>点击任意位置</b>投掷炸弹。充满进度条后释放<b>弹幕</b>。</li>' +
-  '<li>用金币建造楼层。<b>点击塔上的武器</b>可升级或修理。</li><li>每层有独立血量。通关 10 章（每章 6 关）解锁武器和英雄，用星星学习<b>天赋</b>。</li>';
+  '<li>用金币建造楼层。<b>点击塔上的武器</b>可升级或修理。</li><li>每层有独立血量。逐章通关可解锁武器和英雄，用星星学习<b>天赋</b>。</li>';
 function applyLang() {
   document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en';
   document.querySelector('.how').innerHTML = LANG === 'zh' ? HOW_ZH : HOW_EN;
