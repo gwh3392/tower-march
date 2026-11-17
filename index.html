@@ -742,6 +742,7 @@ const store = (() => {
     set(k, v) {
       const raw = JSON.stringify(v);
       try { localStorage.setItem(k, raw); } catch (_) {}
+      try { if (window.TM_DATA) window.TM_DATA.setItem(k, raw); } catch (_) {}   // portal cloud save (the CrazyGames build sets it)
       if (k === SK) ckSet(raw);
       dbSet(k, raw);
     },
@@ -1144,15 +1145,17 @@ function dropCoins(x, y, value) {
 
 // ---- enemies ----
 const ey = e => e.fly ? e.y : -e.h * 0.5;                    // vertical centre of an enemy
-const stagesOf = c => c && c % 10 === 0 ? 8 : CFG.STAGES;   // the two Dr. Bunny chapters run two stages longer
+const stagesOf = c => c === 30 ? 11 : c && c % 10 === 0 ? 8 : CFG.STAGES;   // the Dr. Bunny chapters run longer, the finale longest
 const isBossWave = n => S.gm === 'boss' ? true : S.gm === 'blitz' ? false : S.chapter ? n === stagesOf(S.chapter) : n % 5 === 0;
 function diff(n) {                           // enemy multipliers for stage/wave n of the current chapter
   // Every chapter is a fresh run, so stage 1 stays close to chapter 1 and later chapters ramp up faster instead.
+  // The finale (chapter 30) hits harder throughout; its three extra stages bring bigger crowds but toughen more slowly.
+  const fin = S.chapter === 30 && S.gm !== 'boss', fh = fin ? 1.2 : 1; if (fin && n > 8) n = 8 + (n - 8) * 0.4;
   const c0 = Math.max(1, S.chapter), c = c0 > 10 ? 10 + (c0 - 10) * 0.45 : c0, base = Math.pow(CFG.HP_GROW, n - 1);     // past chapter 10 the climb is gentler per chapter
   const ch = Math.pow(CFG.HP_GROW + CFG.CH_GROW * (c - 1), n - 1) / base * (1 + CFG.CH_HP * (c - 1));
   const end = S.chapter ? 1 : Math.pow(CFG.END_BITE, n - 1);      // endless: bites (and repair bills) keep growing until the tower falls
-  return { hp: base * ch * S.mods.hp, bossHp: base * Math.pow(ch, CFG.BOSS_CH) * S.mods.hp, fix: Math.pow(ch, CFG.CH_COIN) * end, coin: Math.pow(ch, CFG.CH_COIN) * (1 + CFG.ST_COIN * (n - 1)),
-           dmg: (1 + CFG.DMG_GROW * (n - 1)) * (1 + CFG.CH_DMG * (c - 1)) * Math.pow(ch, CFG.CH_BITE) * end,
+  return { hp: base * ch * S.mods.hp * fh, bossHp: base * Math.pow(ch, CFG.BOSS_CH) * S.mods.hp * fh, fix: Math.pow(ch, CFG.CH_COIN) * end, coin: Math.pow(ch, CFG.CH_COIN) * (1 + CFG.ST_COIN * (n - 1)),
+           dmg: (1 + CFG.DMG_GROW * (n - 1)) * (1 + CFG.CH_DMG * (c - 1)) * Math.pow(ch, CFG.CH_BITE) * end * (fin ? 1.15 : 1),
            bud: (1 + CFG.CH_BUD * (c - 1)) * S.mods.bud, variety: n + (c - 1) * 2 };
 }
 function spawnEnemy(type, x) {
@@ -4878,7 +4881,7 @@ const Ads = (() => {
     } catch (_) {}
   }
   try {
-    if (kind === 'crazygames') cg().init().then(() => { ready = true; }, () => {});
+    if (kind === 'crazygames') (window.TM_CG_INIT || cg().init()).then(() => { ready = true; }, () => {});   // the build's loader may have started init already
     else if (kind === 'poki') pk().init().then(() => { ready = true; pk().gameLoadingFinished(); }, () => {});
     else if (kind === 'admob') {
       admob.addListener('onRewardedVideoAdReward', () => { got = true; });
@@ -5075,6 +5078,7 @@ function earnTokens(won) {                   // shop tokens for this run, banked
   else if (S.gm === 'boss') n = won ? 80 : 6 * st;
   else if (S.gm === 'bomb') n = Math.min(40, 2 * st);
   else if (S.daily) n = won ? (S.dailyFirst ? 40 : 10) : 2 * st;
+  else if (c && c % 10 === 0) n = won ? 40 + 5 * S.win.stars + (S.firstClear ? 45 : 0) + Math.floor(c / 5) * 3 : 3 * st;   // Dr. Bunny chapters: about 100 for the first clear
   else if (c) n = won ? 10 + 5 * S.win.stars + (S.firstClear ? 25 : 0) + Math.floor(c / 5) * 3 : 2 * st;
   else n = Math.min(40, 2 * st);
   S.tokGot = n; SAVE.tokens = (SAVE.tokens || 0) + n; persist(); return n;
@@ -5160,7 +5164,8 @@ const musicLabel = () => { $('btnMusic').textContent = 'Music: ' + (AudioSys.mus
 $('btnMusic').addEventListener('click', () => { AudioSys.toggleMusic(); sfx('click'); musicLabel(); });
 musicLabel();
 $('btnStart').addEventListener('click', () => {
-  AudioSys.unlock(); sfx('click'); go('chapters');
+  AudioSys.unlock(); sfx('click');
+  if (!hasProgress(SAVE) && !savedRun()) startRun(1); else go('chapters');   // a first-time player goes straight into chapter 1
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (_) {}     // ask the browser not to evict the save
 });
 // the browser wiped the main save but the IndexedDB copy is still there: bring it back
@@ -5249,7 +5254,7 @@ function tick(rdt) {
 /* =====================================================================
    11. LANGUAGE  (English is the source text; Chinese is applied where text reaches the screen)
    ===================================================================== */
-let LANG = store.get('towerMarch.lang', null) || (/^zh/i.test(navigator.language || '') ? 'zh' : 'en');
+let LANG = store.get('towerMarch.lang', null) || (/^zh/i.test(window.TM_LOCALE || navigator.language || '') ? 'zh' : 'en');   // TM_LOCALE: the portal's locale, when it gives one
 const ZH = {
   // weapons
   'Flamethrower': '火焰喷射器', 'Missile Pod': '导弹巢', 'Quake Hammer': '震荡锤', 'Laser': '激光炮', 'Railgun': '轨道炮',
