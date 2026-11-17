@@ -102,6 +102,13 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 #btnFix.off{filter:grayscale(.85) brightness(.72)}
 #btnFix:active{transform:translateY(2px);box-shadow:0 2px 0 #1f6e44,0 4px 8px rgba(0,0,0,.35)}
 #btnFix b{font-variant-numeric:tabular-nums}
+#btnFix.full .coinIco{display:none}
+#btnUpAll{display:none;align-items:center;gap:7px;padding:7px 13px 8px;border-radius:15px;font-weight:900;font-size:14px;color:#3a2200!important;
+  background:linear-gradient(#ffd96a,#f5a623);box-shadow:0 4px 0 #b06d0a,0 8px 14px rgba(0,0,0,.35);transition:filter .2s}
+#btnUpAll.on{display:flex}
+#btnUpAll.off{filter:grayscale(.85) brightness(.72)}
+#btnUpAll:active{transform:translateY(2px);box-shadow:0 2px 0 #b06d0a,0 4px 8px rgba(0,0,0,.35)}
+#btnUpAll b{font-variant-numeric:tabular-nums}
 #btnBuild:active{transform:translateY(3px);box-shadow:0 2px 0 var(--cta-edge),0 5px 10px rgba(0,0,0,.35)}
 #btnBuild .bl{display:flex;flex-direction:column;flex:1}
 #btnBuild b{font-weight:900;font-size:16px;line-height:1.15}
@@ -352,6 +359,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
     </div>
     </div>
     <div id="rightHud">
+    <button id="btnUpAll" aria-label="Upgrade every weapon"><span>Upgrade all</span><i class="coinIco"></i><b id="upAllCost">0</b></button>
     <button id="btnFix" aria-label="Repair all floors"><span>Repair all</span><i class="coinIco"></i><b id="fixCost">0</b></button>
     <button id="btnBuild" class="off">
       <span class="bl"><b id="buildLabel">Build a floor</b><small id="buildSub">Floor 1 / 6</small></span>
@@ -803,6 +811,7 @@ const wpal = t => { const pp = WPAL[t]; if (!pp) return null; const alt = wPrevi
 const wcol = t => { const pp = wpal(t); return pp ? pp.col : TURRETS[t].color; };
 const fireLook = () => { const W = wpal('inferno'); return { c1: W.col, c2: W.hot, alt: !!SAVE.shop.wsk.inferno }; };
 const TSK = () => TOWER_SKINS.find(k => k.id === SAVE.shop.tower) || TOWER_SKINS[0];
+const GIFT_EXTRAS = true;                      // true only in the private gift build: adds the one-tap Upgrade all button
 const NATION_FLAG = true;                      // true only in the private gift build: the roof flies the national flag instead of the game's banner
 const SHOP = [];
 for (const k of TOWER_SKINS) SHOP.push({ id: 't_' + k.id, tab: 'tower', name: k.name, cost: k.cost, val: k.id, sk: k });
@@ -1123,7 +1132,7 @@ const el = {
   ui: $('ui'), top: $('top'), bottom: $('bottom'), hpbar: $('hpbar'), hpFill: $('hpFill'), hpGhost: $('hpGhost'), hpText: $('hpText'),
   wave: $('waveText'), stageDots: $('stageDots'), dist: $('distChip'), coinChip: $('coinChip'), coin: $('coinText'), mute: $('btnMute'), pauseBtn: $('btnPause'),
   boss: $('bossbar'), bossFill: $('bossFill'), banner: $('banner'), pips: $('pips'), pipRow: $('pipRow'),
-  fixAll: $('btnFix'), fixCost: $('fixCost'), build: $('btnBuild'), buildLabel: $('buildLabel'), buildSub: $('buildSub'), buildCost: $('buildCost'),
+  fixAll: $('btnFix'), fixCost: $('fixCost'), upAll: $('btnUpAll'), upAllCost: $('upAllCost'), build: $('btnBuild'), buildLabel: $('buildLabel'), buildSub: $('buildSub'), buildCost: $('buildCost'),
   start: $('start'), bestLine: $('bestLine'), choice: $('choice'), chTitle: $('chTitle'), chSub: $('chSub'), cards: $('cards'), chCancel: $('chCancel'),
   fp: $('fp'), fpCv: $('fpCv'), fpName: $('fpName'), fpMk: $('fpMk'), fpDmg: $('fpDmg'), fpHp: $('fpHp'), fpUp: $('fpUp'), fpUpL: $('fpUpL'), fpUpCost: $('fpUpCost'), fpFix: $('fpFix'), fpFixCost: $('fpFixCost'), fpDown: $('fpDown'), fpUpF: $('fpUpF'), fpSell: $('fpSell'), tip: $('tip'), toast: $('toast'), awards: $('awards'), shop: $('shop'), aGrid: $('aGrid'),
   pause: $('pause'), over: $('over'), newRec: $('newRec'), oDist: $('oDist'), oWave: $('oWave'), oKills: $('oKills'), oBest: $('oBest'),
@@ -1440,6 +1449,19 @@ function repairAll() {
   }
   sumHp(); sfx('heal'); if (!SAVE.tut.fix) { SAVE.tut.fix = 1; persist(); }
   floatText(T.x, -(CFG.HULL_TOP + T.nOn * CFG.FLOOR_H) - 60, '+' + Math.round(got), '#7df0a0', 20, 1.1);
+}
+// (gift build) One tap raises every weapon one Mk, cheapest first, as far as the coins go.
+function upAllPlan() {
+  const order = T.floors.map((f, i) => i).filter(i => T.floors[i].on && T.floors[i].lv < CFG.TIER_MAX).sort((a, b) => T.floors[a].lv - T.floors[b].lv);
+  let budget = S.coins, cost = 0, next = 0; const plan = [];
+  for (const i of order) { const c = upCost(T.floors[i].lv); if (!next || c < next) next = c; if (c <= budget) { plan.push(i); budget -= c; cost += c; } }
+  return { plan, cost, next, any: order.length > 0 };
+}
+function upgradeAll() {
+  if (S.mode !== 'play') return;
+  const { plan } = upAllPlan();
+  if (!plan.length) { sfx('deny'); nudge(el.upAll, 'deny'); return; }
+  for (const i of plan) { const f = T.floors[i], c = upCost(f.lv); S.coins -= c; f.spent += c; promote(i); }
 }
 function swapFloor(i, dir) {                 // trade places with the floor above or below (the bottom floor takes the bites)
   const j = i + dir, a = T.floors[i], b = T.floors[j];
@@ -5149,8 +5171,13 @@ function syncHud() {
     hud.sk = sk; el.skillFill.style.width = sk + '%'; el.skillBox.classList.toggle('ready', sk >= 100);
     el.skillLabel.textContent = sk >= 100 ? 'Ready!' : 'Barrage'; el.btnSkill.setAttribute('aria-label', sk >= 100 ? 'Fire Barrage' : 'Barrage charging, ' + sk + ' percent');
   }
-  const fx = S.mode === 'play' && S.gm !== 'bomb' ? fixAllPlan() : null, fk = fx && fx.need > 0 ? fx.cost : -1;       // the repair-all button and what a tap costs right now
-  if (hud.fix !== fk) { hud.fix = fk; el.fixAll.classList.toggle('on', fk >= 0); el.fixAll.classList.toggle('off', fk === 0); el.fixCost.textContent = fk > 0 ? fk : ''; }
+  // The repair-all button stays on screen through the stage: grey with no price while the tower is whole, green with what a tap costs once it is hurt.
+  const fx = S.mode === 'play' && S.gm !== 'bomb' ? fixAllPlan() : null, fk = !fx ? -2 : fx.need > 0 ? fx.cost : -1;
+  if (hud.fix !== fk) { hud.fix = fk; el.fixAll.classList.toggle('on', fk !== -2); el.fixAll.classList.toggle('off', fk <= 0); el.fixAll.classList.toggle('full', fk === -1); el.fixCost.textContent = fk > 0 ? fk : ''; }
+  if (GIFT_EXTRAS) {                           // Upgrade all: what one tap costs, or (greyed) the cheapest upgrade still out of reach
+    const up = S.mode === 'play' && S.gm !== 'bomb' ? upAllPlan() : null, uk = !up || !up.any ? 'x' : up.cost > 0 ? 'c' + up.cost : 'n' + up.next;
+    if (hud.upa !== uk) { hud.upa = uk; el.upAll.classList.toggle('on', uk !== 'x'); el.upAll.classList.toggle('off', uk[0] === 'n'); el.upAllCost.textContent = uk === 'x' ? '' : uk.slice(1); }
+  }
   setText(el.dist, 'dist', Math.floor(T.x / CFG.PX_PER_M) + ' m');
   setText(el.coin, 'coin', Math.floor(S.coins));
   const b = S.bomb;
@@ -5549,6 +5576,7 @@ document.addEventListener('touchmove', e => { if (!e.target.closest || !e.target
 
 el.build.addEventListener('click', tryBuild);
 el.fixAll.addEventListener('click', repairAll);
+el.upAll.addEventListener('click', upgradeAll);
 el.pauseBtn.addEventListener('click', () => { sfx('click'); togglePause(); });
 el.mute.addEventListener('click', toggleMute);
 el.chCancel.addEventListener('click', cancelChoice);
@@ -5617,6 +5645,9 @@ window.addEventListener('keydown', e => {
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden && S.mode === 'play') togglePause(); });
 window.addEventListener('resize', resize);
+// The bottom HUD grows when special-skill buttons appear (on a phone held upright it stacks into a tall column):
+// lift the ground with it, so the tower's lowest floor is never hidden behind the buttons.
+if (window.ResizeObserver) { let lastH = 0; new ResizeObserver(() => { const h = el.bottom.offsetHeight; if (Math.abs(h - lastH) > 2) { lastH = h; resize(); } }).observe(el.bottom); }
 window.addEventListener('orientationchange', () => setTimeout(resize, 120));
 darkMq.addEventListener('change', applyTheme);
 new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -5678,7 +5709,7 @@ const ZH = {
   'Ruined Suburbs': '废墟郊区', 'Dead Highway': '死亡公路', 'Rust Harbor': '锈蚀港口', 'Toxic Marsh': '剧毒沼泽', 'Ash Quarry': '灰烬采石场',
   'Frozen Rail Yard': '冰封调车场', 'Neon Downtown': '霓虹市区', 'Broken Dam': '溃坝', 'Black Factory': '黑色工厂', 'The Last Gate': '最后之门',
   'The Butcher': '屠夫', 'Road Reaper': '公路收割者', 'Dock Dredger': '码头挖泥怪', 'Bog Mother': '沼泽之母', 'Cinder Brute': '余烬蛮兵',
-  'Frostjaw': '霜颚', 'Glow Tyrant': '霓光暴君', 'Flood Titan': '洪水泰坦', 'Iron Maw': '铁颚', 'King of the Horde': '尸潮之王', 'Dr. Bunny': '僵尸兔子博士', 'EXPERIMENT!': '实验开始！', 'SPECIMENS!': '实验体出动！', 'Repair all': '一键修理', 'Boss': '首领', 'BOSS': '首领',
+  'Frostjaw': '霜颚', 'Glow Tyrant': '霓光暴君', 'Flood Titan': '洪水泰坦', 'Iron Maw': '铁颚', 'King of the Horde': '尸潮之王', 'Dr. Bunny': '僵尸兔子博士', 'EXPERIMENT!': '实验开始！', 'SPECIMENS!': '实验体出动！', 'Repair all': '一键修理', 'Upgrade all': '一键升级', 'Boss': '首领', 'BOSS': '首领',
   'Rookie': '新兵', 'Scout': '侦察兵', 'Mechanic': '机械师', 'Medic': '医疗兵', 'Ranger': '游骑兵', 'Ninja': '忍者', 'Ace Pilot': '王牌飞行员',
   'Knight': '骑士', 'Night Cat': '夜猫', 'Cyber': '赛博', 'Warlord': '战争领主',
   // upgrade cards
