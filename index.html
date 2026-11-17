@@ -958,11 +958,32 @@ const AudioSys = (() => {
     if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
     o.connect(env(t, dur, vol)); o.start(t); o.stop(t + dur + 0.03);
   }
-  function noise(dur, vol, f0, f1, type = 'lowpass', delay = 0) {
+  function noise(dur, vol, f0, f1, type = 'lowpass', delay = 0, att = 0.006, pan = 0) {
     const t = ac.currentTime + delay, s = ac.createBufferSource(), f = ac.createBiquadFilter();
     s.buffer = nbuf; s.loop = true; f.type = type;
     f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
-    s.connect(f); f.connect(env(t, dur, vol)); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.03);
+    s.connect(f); f.connect(env(t, dur, vol, att, pan)); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.03);
+  }
+  function surf(dur, vol, f0, f1, delay, att, p0, p1) {   // filtered noise that swells and travels across the stereo field: water on the move
+    const t = ac.currentTime + delay, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = nbuf; s.loop = true; f.type = 'bandpass'; f.Q.value = 0.6;
+    f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + att); f.frequency.exponentialRampToValueAtTime(Math.max(60, f0 * 0.6), t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + att); g.gain.setTargetAtTime(0.0001, t + att, (dur - att) * 0.35);
+    s.connect(f); f.connect(g);
+    if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.setValueAtTime(p0, t); p.pan.linearRampToValueAtTime(p1, t + dur); g.connect(p); p.connect(master); } else g.connect(master);
+    s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
+  }
+  function drops(n, from, to, vol) {           // little falling 'bloops' of spray
+    for (let k = 0; k < n; k++) { const f = 700 + Math.random() * 1300, d = from + Math.random() * (to - from); tone('sine', f, f * 0.45, 0.07, vol, d); }
+  }
+  function tidal(p, delay) {                   // a great wave: it rises, roars as it rolls out, crashes, and leaves hissing foam and spray
+    surf(2.1, 1.15 * p, 160, 1200, delay, 0.45, -0.6, 0.7);                                 // the wall of water rising and rolling out
+    roll(1.8, 0.85 * p, 280, 90, delay, 0.3, 0);                                             // its weight underneath
+    noise(1.6, 1.15 * p, 5600, 420, 'lowpass', delay + 0.42, 0.015, 0.2);                    // the crash
+    tone('sine', 82, 34, 0.8, 0.95 * p, delay + 0.42);
+    surf(2.4, 0.8 * p, 900, 1500, delay + 0.45, 0.12, 0.1, 0.8);                              // the rushing water after it breaks
+    noise(2.0, 0.45 * p, 7000, 2800, 'highpass', delay + 0.5, 0.08, 0.45);                    // foam hissing as it spreads
+    drops(Math.round(12 * p), delay + 0.5, delay + 1.8, 0.13 * p);
   }
   // name: [min gap between plays (s), synth fn]
   const SFX = {
@@ -974,6 +995,8 @@ const AudioSys = (() => {
     boom:     [0.07,  () => { noise(0.4, 0.6, 1200, 80); tone('sine', 110, 30, 0.4, 0.6); }],
     thunder:  [0.35,  () => thunder(1, false)],
     crack:    [0.05,  () => thunder(0.5, true)],
+    tide:     [1,     () => { tidal(1, 0); tidal(0.5, 0.26); }],                     // the great wave and the smaller one behind it
+    splash:   [0.07,  () => { noise(0.25, 0.55, 2400, 450, 'bandpass'); tone('sine', 140, 60, 0.15, 0.35); drops(2, 0, 0.12, 0.1); }],
     storm:    [1,     () => { roll(1.1, 0.5, 120, 380, 0, 0.7, 0); tone('sawtooth', 55, 38, 1.0, 0.12); }],   // the sky darkening before the first strike
     bomb:     [0.05,  () => { noise(0.7, 0.9, 1800, 60); tone('sine', 90, 24, 0.6, 0.9); }],
     launch:   [0.04,  () => { tone('sine', 320, 90, 0.16, 0.4); noise(0.1, 0.25, 800, 300); }],
@@ -2047,7 +2070,7 @@ function elementBarrage(f, i) {
       surges.push({ x: T.x + CFG.BASE_W / 2, end: T.x + CFG.BASE_W / 2 + 860, dmg, hit: [], dead: false, s: 1.9 });
       surges.push({ x: T.x + CFG.BASE_W / 2, end: T.x + CFG.BASE_W / 2 + 760, dmg: 0, hit: [], dead: false, s: 1.2, vis: true, delay: 0.24 });
       for (let k = 0; k < 24; k++) P(DOT, T.x + 60 + rand(0, 60), -rand(10, 120), rand(80, 320), rand(-420, -120), rand(0.5, 0.9), rand(3, 7), '#d8f2ff', 800);
-      sfx('frost'); break;
+      sfx('tide'); break;
     case 'earth':                              // a crack runs from the tower to the edge of the screen; every walker it passes is thrown up on rock
       ultFx.push({ k: 'quake', x0: T.x + CFG.BASE_W / 2, x: T.x + CFG.BASE_W / 2, x1: cam.x + view.w + 60, next: T.x + CFG.BASE_W / 2 + 60, dmg, hit: [], t: 0, max: 9, seed: Math.random() });
       S.shake = Math.max(S.shake, 0.9); sfx('boom'); break;
@@ -2104,7 +2127,7 @@ function updateSurges(dt) {                    // Tidal Wave: sweeps away from t
     w.x += 640 * dt; if (w.x > w.end) w.dead = true;
     if (!w.vis) for (const e of enemies) {
       if (e.dead || e.fly || w.hit.includes(e) || Math.abs(e.x - w.x) > 34 * sc + e.r) continue;
-      w.hit.push(e); hurt(e, w.dmg, { kb: 330, blast: true }); e.slowT = Math.max(e.slowT, 3);
+      w.hit.push(e); hurt(e, w.dmg, { kb: 330, blast: true }); e.slowT = Math.max(e.slowT, 3); sfx('splash');
       for (let k = 0; k < 6; k++) P(DOT, e.x, ey(e), rand(60, 260), rand(-320, -80), rand(0.4, 0.7), rand(3, 6), '#e6f6ff', 700);
     }
     if (Math.random() < dt * 40 * sc) P(DOT, w.x + rand(-10, 20) * sc, -rand(20, 90) * sc, rand(40, 200), rand(-220, -40), rand(0.3, 0.7), rand(3, 6), '#cfeaff', 500);
