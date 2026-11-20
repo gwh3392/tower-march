@@ -560,11 +560,11 @@ const TURRETS = {
   laser:   { name: 'Laser',        color: '#ff4fd8', dmg: 2.6, rate: 10,  range: 420, desc: 'A steady beam that grows stronger the longer it holds a target.' },
   rail:    { name: 'Railgun',      color: '#4f8cff', dmg: 70,  rate: 0.38, range: 640, sp: 'rail', sk: 140, skT: 16, skill: 'Sunpiercer', desc: 'A slow, huge shot that pierces every enemy in its line.' },
   // special weapons: one element each, bought from the special slot, and each fires its own barrage when its ring fills
-  inferno: { name: 'Inferno Cannon', color: '#ff5a2a', dmg: 22, rate: 0.8,  range: 440, splash: 62, sp: 'fire',  sk: 60, skT: 15, skill: 'Meteor Rain',  desc: 'Fireballs that explode and set enemies alight.' },
-  storm:   { name: 'Storm Spire',    color: '#ffe14a', dmg: 15, rate: 1.1,  range: 400, chain: 5,   sp: 'bolt',  sk: 45, skT: 14, skill: 'Thunderstorm', desc: 'Lightning that jumps across 5 enemies.' },
-  tide:    { name: 'Tide Cannon',    color: '#3fa9ff', dmg: 8,  rate: 1.7,  range: 430, kb: 60, slow: 1.4, sp: 'water', sk: 40, skT: 16, skill: 'Tidal Wave', desc: 'A water jet through the whole line. Pushes back and slows.' },
-  terra:   { name: 'Boulder Mortar', color: '#c9955a', dmg: 46, rate: 0.42, range: 480, splash: 92, slow: 1.6, sp: 'earth', sk: 70, skT: 17, skill: 'Earthquake', desc: 'Huge boulders with a wide blast that staggers.' },
-  grove:   { name: 'Thorn Vine',     color: '#5fd06a', dmg: 4.2, rate: 4.5, range: 390, sp: 'wood',  sk: 28, skT: 16, skill: 'Overgrowth',   desc: 'Rapid thorns that poison their target.' },
+  inferno: { name: 'Inferno Cannon', color: '#ff5a2a', dmg: 22, rate: 0.8,  range: 440, splash: 62, sp: 'fire',  sk: 120, skT: 15, skill: 'Meteor Rain',  desc: 'Fireballs that explode and set enemies alight.' },
+  storm:   { name: 'Storm Spire',    color: '#ffe14a', dmg: 15, rate: 1.1,  range: 400, chain: 5,   sp: 'bolt',  sk: 90, skT: 14, skill: 'Thunderstorm', desc: 'Lightning that jumps across 5 enemies.' },
+  tide:    { name: 'Tide Cannon',    color: '#3fa9ff', dmg: 8,  rate: 1.7,  range: 430, kb: 60, slow: 1.4, sp: 'water', sk: 80, skT: 16, skill: 'Tidal Wave', desc: 'A water jet through the whole line. Pushes back and slows.' },
+  terra:   { name: 'Boulder Mortar', color: '#c9955a', dmg: 46, rate: 0.42, range: 480, splash: 92, slow: 1.6, sp: 'earth', sk: 140, skT: 17, skill: 'Earthquake', desc: 'Huge boulders with a wide blast that staggers.' },
+  grove:   { name: 'Thorn Vine',     color: '#5fd06a', dmg: 4.2, rate: 4.5, range: 390, sp: 'wood',  sk: 56, skT: 16, skill: 'Overgrowth',   desc: 'Rapid thorns that poison their target.' },
 };
 const TURRET_IDS = Object.keys(TURRETS);
 const SPECIAL_IDS = TURRET_IDS.filter(t => TURRETS[t].sp), NORMAL_IDS = TURRET_IDS.filter(t => !TURRETS[t].sp);
@@ -1076,6 +1076,7 @@ const AudioSys = (() => {
     ready:    [0.3,   () => { tone('triangle', 784, 784, 0.1, 0.16); tone('triangle', 1175, 1175, 0.22, 0.16, 0.09); }],
     upgrade:  [0.1,   () => { tone('sine', 90, 40, 0.25, 0.6); [440, 554, 659, 880, 1109].forEach((f, i) => tone('triangle', f, f, 0.16, 0.15, 0.05 + i * 0.06)); noise(0.2, 0.18, 3000, 6000, 'highpass', 0.3); }],
     win:      [0.5,   () => { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone('triangle', f, f, 0.22, 0.17, i * 0.11)); tone('sawtooth', 131, 131, 0.9, 0.07); }],
+    freeze:   [0.3,   () => { noise(0.4, 0.32, 9000, 3800, 'highpass'); [2093, 2637, 3136].forEach((f, i) => tone('triangle', f, f * 0.98, 0.34, 0.07, i * 0.05)); tone('sine', 1047, 1568, 0.25, 0.08); }],   // the Tidal Wave turning to ice: a glassy shimmer
     alarm:    [1,     () => {                                                         // a boss stage's warning: three blasts of a klaxon, in time with the red light
       for (let k = 0; k < 3; k++) { const d = k * 0.4; tone('sawtooth', 233, 185, 0.3, 0.2, d); tone('square', 117, 93, 0.3, 0.09, d); tone('triangle', 932, 740, 0.22, 0.06, d + 0.02); }
     }],
@@ -1303,6 +1304,7 @@ function hurt(e, dmg, o) {
 }
 function kill(e) {
   e.dead = true; S.kills++; if (S.mode === 'play') S.score += e.type === 'boss' ? 500 : Math.round(e.d.cost * 10); SAVE.stat.kills = (SAVE.stat.kills || 0) + 1;
+  if (e.frozenT > 0) shatter(e);                 // killed in the ice: it shatters
   const cy = ey(e), big = e.type === 'boss', mid = e.type === 'brute';
   if (e.acc > 0) floatText(e.x, cy - e.r - 14, Math.round(e.acc), '#ffffff', 14);
   goo(e.x, cy, big ? 44 : mid ? 18 : 9, GOO[e.type], big ? 1.8 : mid ? 1.3 : 1);
@@ -2048,6 +2050,7 @@ function updateEnemies(dt) {
   for (const e of queue) {
     const base = front + e.r * 0.6;
     e.stop = Math.max(base + e.stopOff * 0.4, prevStop + CFG.QUEUE_GAP);
+    if (e.frozenT > 0) e.stop = Math.max(e.stop, e.x);                // a frozen zombie stays put, and the ones behind queue up behind its ice
     e.reach = e.stop - base < CFG.REACH;
     prevStop = e.stop;
   }
@@ -2057,6 +2060,12 @@ function updateEnemies(dt) {
     if (e.acc > 0) { e.accT -= dt; if (e.accT <= 0) { floatText(e.x, ey(e) - e.r - 14, Math.round(e.acc), '#ffffff', 14); e.acc = 0; } }
     const sl = e.slowT > 0 ? 0.5 : 1;
     e.x += e.kvx * dt; e.kvx *= Math.exp(-7 * dt);
+    if (e.frozenT > 0) {                       // locked in ice: no walking, no biting, no boss tricks until it thaws (it still blocks the road)
+      e.frozenT -= dt; e.at = !e.fly;
+      if (!e.fly && !e.d.ranged && e.reach) blocked = true;
+      if (e.frozenT <= 0) shatter(e);
+      continue;
+    }
     if (e.fly) {
       // crows ignore the blocking rule and peck the top floor
       e.y += e.kvy * dt; e.kvy *= Math.exp(-7 * dt);
@@ -2195,14 +2204,27 @@ function syncSpSkills() {                      // one round button per kind of s
     if (hud.spP[k] !== q) { hud.spP[k] = q; const b = el.spSkills.children[k]; b.style.setProperty('--p', q); b.classList.toggle('ready', q >= 100); }
   });
 }
-function updateSurges(dt) {                    // Tidal Wave: sweeps away from the tower, hitting each ground enemy once
+const FREEZE_T = 3;                             // Tidal Wave: seconds a soaked ground enemy stays locked in ice
+function freeze(e, t) {
+  if (e.dead) return;
+  e.frozenT = Math.max(e.frozenT || 0, t); e.slowT = Math.max(e.slowT, t + 1.5);   // frozen solid, then still chilled for a moment after it thaws
+  for (let k = 0; k < 6; k++) P(DOT, e.x + rand(-e.r, e.r), ey(e) + rand(-e.h * 0.4, e.h * 0.3), rand(-40, 40), rand(-90, -20), rand(0.4, 0.8), rand(2, 4), '#e6f8ff', -20);
+}
+function shatter(e) {                          // the ice breaks: shards fly, and the zombie moves again (or falls, if it died in the ice)
+  e.frozenT = 0;
+  const top = e.fly ? e.y : -e.h * 0.6;
+  for (let k = 0; k < 10; k++) P(DEBRIS, e.x + rand(-e.r, e.r), top + rand(-e.r * 0.5, e.h * 0.45), rand(-170, 170), rand(-300, -60), rand(0.5, 0.8), rand(3, 6), k % 2 ? '#d6f3ff' : '#9fdcff', 900);
+  sfx('frost');
+}
+function updateSurges(dt) {                    // Tidal Wave: sweeps away from the tower, hitting (and freezing) each ground enemy once
   for (const w of surges) {
     if (w.delay > 0) { w.delay -= dt; continue; }
     const sc = w.s || 1;
     w.x += 640 * dt; if (w.x > w.end) w.dead = true;
     if (!w.vis) for (const e of enemies) {
       if (e.dead || e.fly || w.hit.includes(e) || Math.abs(e.x - w.x) > 34 * sc + e.r) continue;
-      w.hit.push(e); hurt(e, w.dmg, { kb: 330, blast: true }); e.slowT = Math.max(e.slowT, 3); sfx('splash');
+      w.hit.push(e); hurt(e, w.dmg, { kb: 330, blast: true }); sfx('splash');
+      if (!e.dead) { freeze(e, FREEZE_T); sfx('freeze'); }                // and it freezes where the water leaves it
       for (let k = 0; k < 6; k++) P(DOT, e.x, ey(e), rand(60, 260), rand(-320, -80), rand(0.4, 0.7), rand(3, 6), '#e6f6ff', 700);
     }
     if (Math.random() < dt * 40 * sc) P(DOT, w.x + rand(-10, 20) * sc, -rand(20, 90) * sc, rand(40, 200), rand(-220, -40), rand(0.3, 0.7), rand(3, 6), '#cfeaff', 500);
@@ -4684,9 +4706,30 @@ function drawTower() {
 // ---- enemies ----
 const frostCache = new Map();
 function frostCol(c) { let v = frostCache.get(c); if (!v) { v = mix(c, '#a8e6ff', 0.55); frostCache.set(c, v); } return v; }
+const iceCache = new Map();
+function iceCol(c) { let v = iceCache.get(c); if (!v) { v = mix(c, '#d4f1ff', 0.72); iceCache.set(c, v); } return v; }
+function drawIce(e) {                            // the block of ice around a frozen enemy; it cracks over its last half second
+  const thaw = clamp((0.5 - e.frozenT) / 0.5, 0, 1), w = e.r * 2.4 + 8, h = e.fly ? w : e.h + 12;
+  const x = e.x - w / 2, y = e.fly ? e.y - h / 2 : e.depth - h + 3, r = Math.min(12, w * 0.22);
+  ctx.save(); ctx.globalAlpha = 1 - thaw * 0.45;
+  const g = ctx.createLinearGradient(x, y, x + w, y + h); g.addColorStop(0, 'rgba(225,248,255,.55)'); g.addColorStop(1, 'rgba(120,200,255,.32)');
+  ctx.fillStyle = g; rr(ctx, x, y, w, h, r); ctx.fill();
+  ctx.strokeStyle = 'rgba(240,252,255,.9)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath();    // glints
+  ctx.moveTo(x + w * 0.22, y + h * 0.1); ctx.lineTo(x + w * 0.1, y + h * 0.34); ctx.moveTo(x + w * 0.36, y + h * 0.08); ctx.lineTo(x + w * 0.29, y + h * 0.2); ctx.stroke();
+  ctx.fillStyle = 'rgba(235,250,255,.85)';      // frost spikes along the top
+  for (let k = 0; k < 3; k++) { const sx = x + w * (0.25 + k * 0.25), sh = 6 + hash(e.seed * 7 + k) * 7; ctx.beginPath(); ctx.moveTo(sx - 4, y + 2); ctx.lineTo(sx, y - sh); ctx.lineTo(sx + 4, y + 2); ctx.fill(); }
+  if (thaw > 0) {                               // cracks spreading before it breaks
+    ctx.strokeStyle = 'rgba(255,255,255,' + (0.5 + 0.5 * thaw).toFixed(2) + ')'; ctx.lineWidth = 1.4; ctx.beginPath();
+    const cx = x + w * 0.55, cy = y + h * 0.45, len = (0.2 + thaw * 0.5) * Math.min(w, h);
+    for (let k = 0; k < 5; k++) { const a = k * 1.3 + e.seed * 4; ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * len * 0.5 + 3, cy + Math.sin(a) * len * 0.5 - 2); ctx.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len); }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 function drawEnemy(e) {
-  const fl = e.flash > 0, sl = e.slowT > 0;
-  const C = c => fl ? '#ffffff' : (sl ? frostCol(c) : c);
+  const fl = e.flash > 0, sl = e.slowT > 0, fz = e.frozenT > 0;
+  const C = c => fl ? '#ffffff' : fz ? iceCol(c) : (sl ? frostCol(c) : c);
   ctx.save();
   if (e.fly) {
     ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.beginPath(); ctx.ellipse(e.x, 2, 12, 3, 0, 0, TAU); ctx.fill();
@@ -4697,6 +4740,7 @@ function drawEnemy(e) {
     if (e.bunny) drawBunny(e, C, fl); else drawZombie(e, C, fl);
   }
   ctx.restore();
+  if (fz) drawIce(e);
   if (e.hp < e.maxHp && e.type !== 'boss') {
     const w = e.r * 2 + 4, y = e.fly ? e.y - e.r - 12 : e.depth - e.h - 12;
     ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(e.x - w / 2 - 1, y - 1, w + 2, 6);
