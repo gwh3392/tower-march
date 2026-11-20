@@ -79,6 +79,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
   letter-spacing:.04em;text-transform:uppercase;opacity:0;text-shadow:0 3px 0 rgba(0,0,0,.5),0 0 26px rgba(0,0,0,.45)}
 #banner small{display:block;font-size:.4em;letter-spacing:.18em;margin-top:.2em}
 #banner.boss{color:#ff6767}
+#banner.boss small{color:#fff}
 #banner.show{animation:banner 2.4s cubic-bezier(.2,.9,.3,1) both}
 @keyframes banner{0%{opacity:0;transform:scale(1.7)}13%{opacity:1;transform:scale(1)}76%{opacity:1;transform:scale(1.04)}100%{opacity:0;transform:scale(.94) translateY(-14px)}}
 
@@ -557,7 +558,7 @@ const TURRETS = {
   missile: { name: 'Missile Pod',  color: '#e9e4d4', dmg: 24,  rate: 0.85, range: 560, splash: 58, desc: 'Homing missiles with splash. Hunts flyers first.' },
   quake:   { name: 'Quake Hammer', color: '#c9a86a', dmg: 12,  rate: 0.45, range: 250, kb: 160, slow: 1.2, desc: 'Shockwave that hits and staggers every ground enemy nearby.' },
   laser:   { name: 'Laser',        color: '#ff4fd8', dmg: 2.6, rate: 10,  range: 420, desc: 'A steady beam that grows stronger the longer it holds a target.' },
-  rail:    { name: 'Railgun',      color: '#4f8cff', dmg: 70,  rate: 0.38, range: 640, sp: 'rail', sk: 85, skT: 16, skill: 'Sunpiercer', desc: 'A slow, huge shot that pierces every enemy in its line.' },
+  rail:    { name: 'Railgun',      color: '#4f8cff', dmg: 70,  rate: 0.38, range: 640, sp: 'rail', sk: 140, skT: 16, skill: 'Sunpiercer', desc: 'A slow, huge shot that pierces every enemy in its line.' },
   // special weapons: one element each, bought from the special slot, and each fires its own barrage when its ring fills
   inferno: { name: 'Inferno Cannon', color: '#ff5a2a', dmg: 22, rate: 0.8,  range: 440, splash: 62, sp: 'fire',  sk: 60, skT: 15, skill: 'Meteor Rain',  desc: 'Fireballs that explode and set enemies alight.' },
   storm:   { name: 'Storm Spire',    color: '#ffe14a', dmg: 15, rate: 1.1,  range: 400, chain: 5,   sp: 'bolt',  sk: 45, skT: 14, skill: 'Thunderstorm', desc: 'Lightning that jumps across 5 enemies.' },
@@ -1075,6 +1076,9 @@ const AudioSys = (() => {
     ready:    [0.3,   () => { tone('triangle', 784, 784, 0.1, 0.16); tone('triangle', 1175, 1175, 0.22, 0.16, 0.09); }],
     upgrade:  [0.1,   () => { tone('sine', 90, 40, 0.25, 0.6); [440, 554, 659, 880, 1109].forEach((f, i) => tone('triangle', f, f, 0.16, 0.15, 0.05 + i * 0.06)); noise(0.2, 0.18, 3000, 6000, 'highpass', 0.3); }],
     win:      [0.5,   () => { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone('triangle', f, f, 0.22, 0.17, i * 0.11)); tone('sawtooth', 131, 131, 0.9, 0.07); }],
+    alarm:    [1,     () => {                                                         // a boss stage's warning: three blasts of a klaxon, in time with the red light
+      for (let k = 0; k < 3; k++) { const d = k * 0.4; tone('sawtooth', 233, 185, 0.3, 0.2, d); tone('square', 117, 93, 0.3, 0.09, d); tone('triangle', 932, 740, 0.22, 0.06, d + 0.02); }
+    }],
   };
   function play(name) {
     if (!ac || muted || ac.state !== 'running') return;
@@ -1740,6 +1744,7 @@ function buildWave(n) {
   if (boss) q.splice(Math.min(3, q.length), 0, { type: 'boss', gap: 2.5 });
   return q;
 }
+const BOSS_WARN = 2.2;                          // a boss stage opens with this many seconds of warning before its zombies come on
 function startWave() {
   S.wave++; S.queue = buildWave(S.wave); S.waveState = 'intro'; S.waveT = 1.6;
   applyTheme();
@@ -1748,12 +1753,13 @@ function startWave() {
     S.queue = []; S.waveState = 'blitz'; S.spawnT = 1; S.bossAt = 65;
     banner('Blitz', 'Score as much as you can in 120 seconds', false); sfx('wave'); saveRun(); return;
   }
+  if (boss) { S.waveT = BOSS_WARN; S.bossWarn = BOSS_WARN; S.bossRoar = true; }   // the warning plays out first (drawBossWarn), then the boss roars and they come
   if (S.gm === 'boss') banner('Boss ' + S.wave + ' / ' + RUSH_N, 'Boss: ' + CHAPTERS[clamp(S.wave, 1, CHAPTERS.length) - 1].boss, true);
-  else if (S.gm === 'bomb') banner('Wave ' + S.wave, S.wave === 1 ? 'Turrets offline. Tap fast!' : boss ? 'Boss incoming!' : '', boss);
-  else if (S.daily) banner('Daily ' + S.wave + ' / ' + stagesOf(S.chapter), boss ? 'Boss: ' + ch.boss : S.wave === 1 ? S.daily.mods.map(i => MUTATORS[i].name).join(' + ') : '', boss);
-  else if (c) banner('Stage ' + c + '-' + S.wave, boss ? 'Boss: ' + ch.boss : c === 1 ? WAVE_TIPS[S.wave] : S.wave === 1 ? ch.name : '', boss);
-  else banner('Wave ' + S.wave, boss ? 'Boss incoming!' : (WAVE_TIPS[S.wave] || ''), boss);
-  sfx(boss ? 'boss' : 'wave');
+  else if (S.gm === 'bomb') banner(boss ? 'Boss incoming!' : 'Wave ' + S.wave, S.wave === 1 ? 'Turrets offline. Tap fast!' : boss ? 'Wave ' + S.wave : '', boss);
+  else if (S.daily) banner(boss ? 'Boss incoming!' : 'Daily ' + S.wave + ' / ' + stagesOf(S.chapter), boss ? 'Daily ' + S.wave + ' / ' + stagesOf(S.chapter) + ' · Boss: ' + ch.boss : S.wave === 1 ? S.daily.mods.map(i => MUTATORS[i].name).join(' + ') : '', boss);
+  else if (c) banner(boss ? 'Boss incoming!' : 'Stage ' + c + '-' + S.wave, boss ? 'Stage ' + c + '-' + S.wave + ' · Boss: ' + ch.boss : c === 1 ? WAVE_TIPS[S.wave] : S.wave === 1 ? ch.name : '', boss);
+  else banner(boss ? 'Boss incoming!' : 'Wave ' + S.wave, boss ? 'Wave ' + S.wave : (WAVE_TIPS[S.wave] || ''), boss);
+  sfx(boss ? 'alarm' : 'wave');
   saveRun(); checkAch();
 }
 function stageCleared() {                    // field repairs and a coin bonus after every stage
@@ -1772,8 +1778,9 @@ function stageCleared() {                    // field repairs and a coin bonus a
   floatText(T.x + 10, -(CFG.HULL_TOP + T.nOn * CFG.FLOOR_H) - 78, '+' + got + ' coins', '#ffd84a', 17, 1.5);
 }
 function updateWaves(dt) {
+  if (S.bossWarn > 0) S.bossWarn = Math.max(0, S.bossWarn - dt);
   switch (S.waveState) {
-    case 'intro': S.waveT -= dt; if (S.waveT <= 0) { S.waveState = 'spawn'; S.spawnT = 0; } break;
+    case 'intro': S.waveT -= dt; if (S.waveT <= 0) { S.waveState = 'spawn'; S.spawnT = 0; if (S.bossRoar) { S.bossRoar = false; sfx('boss'); } } break;
     case 'spawn':
       if (!enemies.length) S.spawnT = Math.min(S.spawnT, 0.3);            // never leave the player waiting on an empty field
       S.spawnT -= dt;
@@ -1799,7 +1806,7 @@ function updateWaves(dt) {
         if (t0 > 55) pool.push({ type: 'shield', w: 1 }, { type: 'spitter', w: 0.8 });
         spawnEnemy(sample(pool, 1)[0].type); S.spawnT = lerp(0.55, 0.15, t0 / BLITZ_T) * rand(0.6, 1.4);
       }
-      if (S.bossAt && t0 >= S.bossAt) { S.bossAt = 0; spawnEnemy('boss'); S.shake = Math.max(S.shake, 0.5); banner('Boss incoming!', '+500 points', true); sfx('boss'); }
+      if (S.bossAt && t0 >= S.bossAt) { S.bossAt = 0; spawnEnemy('boss'); S.shake = Math.max(S.shake, 0.5); S.bossWarn = BOSS_WARN; banner('Boss incoming!', '+500 points', true); sfx('alarm'); sfx('boss'); }
       break;
     }
     case 'fight': if (!enemies.length) { S.waveState = 'clear'; S.waveT = 1.2; stageCleared(); } break;
@@ -2258,7 +2265,7 @@ function updateUlt(dt) {
             if (e.dead || u.hit.includes(e) || !inView(e)) continue;
             const ae = Math.atan2(ey(e) - py, e.x - px), tol = ((e.fly ? e.r : e.h * 0.5) + 6) / Math.max(40, Math.hypot(e.x - px, ey(e) - py));
             if (ae >= prev - tol && ae <= u.a + tol) {
-              u.hit.push(e); hurt(e, u.dmg * 0.6, { kb: 110, blast: true });
+              u.hit.push(e); hurt(e, u.dmg, { kb: 110, blast: true });
               sparks(e.x, ey(e), 10, '#ffffff', 1.1); glowBurst(e.x, ey(e), u.col); P(RING, e.x, ey(e), 0, 0, 0.3, 54, u.col);
             }
           }
@@ -2278,7 +2285,7 @@ function updateUlt(dt) {
               if (e.dead || !inView(e)) continue;
               const cx = e.x - mx, cy = ey(e) - my, tt = cx * dx + cy * dy; if (tt < 0 || tt > len + 10) continue;
               const qx = (cx - dx * tt) / (e.r + 14), qy = (cy - dy * tt) / ((e.fly ? e.r : e.h * 0.5) + 12);
-              if (qx * qx + qy * qy < 1) { hurt(e, u.dmg * 0.1, { kb: 18 }); sparks(e.x, ey(e), 4, '#ffffff', 0.8); }
+              if (qx * qx + qy * qy < 1) { hurt(e, u.dmg * 0.2, { kb: 18 }); sparks(e.x, ey(e), 4, '#ffffff', 0.8); }
             }
           }
         }
@@ -2397,6 +2404,24 @@ function drawUlt() {                           // in front of everything in the 
   }
 }
 const ULT_TINT = { fire: '255,70,20', bolt: '20,30,80', water: '40,110,220', earth: '120,80,40', wood: '50,170,70', rail: '14,28,70' };
+function drawBossWarn() {                      // screen space: a boss stage's warning. Red light pulsing in from the edges, hazard tape above and below the banner
+  if (!(S.bossWarn > 0)) return;
+  const W = view.w, H = view.h, t = BOSS_WARN - S.bossWarn, fade = clamp(Math.min(t / 0.15, S.bossWarn / 0.35), 0, 1);
+  const pulse = 0.5 + 0.5 * Math.cos(t * 2.5 * TAU);                        // peaks with each blast of the klaxon
+  const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.28, W / 2, H / 2, Math.max(W, H) * 0.72);
+  g.addColorStop(0, 'rgba(255,30,30,0)'); g.addColorStop(1, 'rgba(255,30,30,' + ((0.24 + 0.4 * pulse) * fade).toFixed(3) + ')');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const fs = clamp(W * view.scale * 0.07, 28, 60) / view.scale;              // the banner's font size (CSS clamp(28px, 7vw, 60px)) in these units
+  const top = H * 0.22, bh = fs * 0.3, slide = easeOut(t / 0.3) * (1 - easeOut((0.3 - S.bossWarn) / 0.3));
+  for (const [y, dir] of [[top - fs * 0.5, 1], [top + fs * 1.9, -1]]) {     // the two strips slide in from opposite sides, stripes running
+    ctx.save(); ctx.globalAlpha = 0.92 * fade; ctx.translate(dir * (1 - slide) * W, 0);
+    ctx.fillStyle = '#1b1820'; ctx.fillRect(-20, y, W + 40, bh);
+    ctx.fillStyle = '#ffcf3a';
+    const step = bh * 2, off = ((t * 70 * dir) % step + step) % step;
+    for (let x = -step * 2 + off; x < W + step; x += step) { ctx.beginPath(); ctx.moveTo(x, y + bh); ctx.lineTo(x + bh, y); ctx.lineTo(x + bh * 2, y); ctx.lineTo(x + bh, y + bh); ctx.fill(); }
+    ctx.restore();
+  }
+}
 function drawUltScreen() {                     // screen space: the element's light, the storm clouds, and the banner
   if (!ult) return;
   const t = ult.t, a = t < 0.15 ? t / 0.15 : clamp(1 - (t - 0.15) / (ult.max - 0.15), 0, 1), W = view.w, H = view.h;
@@ -2601,6 +2626,7 @@ function render() {
     g.addColorStop(0, 'rgba(255,40,40,0)'); g.addColorStop(1, 'rgba(255,40,40,' + a.toFixed(3) + ')');
     ctx.fillStyle = g; ctx.fillRect(0, 0, view.w, view.h);
   }
+  drawBossWarn();
   drawUltScreen();
   if (S.flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + (S.flash * 0.8).toFixed(3) + ')'; ctx.fillRect(0, 0, view.w, view.h); }
 }
