@@ -125,7 +125,8 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 .overlay{position:absolute;inset:0;display:none;place-items:center;background:var(--scrim);pointer-events:auto;overflow:auto;
   padding:calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
 .overlay.on{display:flex}
-#start{background:linear-gradient(rgba(20,10,30,.25),var(--scrim))}
+#start{background:linear-gradient(rgba(20,10,30,.42),rgba(20,10,30,.08) 55%,rgba(20,10,30,.3))}     /* light: the title screen's own battle plays behind it */
+#start .langBtn{position:absolute;margin:0;top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right))}
 .panel{width:min(720px,100%);margin:auto;text-align:center;animation:pop .28s cubic-bezier(.2,1.4,.4,1)}
 @keyframes pop{0%{opacity:0;transform:scale(.9) translateY(10px)}}
 .title{margin:0;font-size:clamp(46px,13vw,104px);line-height:.88;font-weight:900;letter-spacing:.02em;text-transform:uppercase;
@@ -134,10 +135,6 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 .title .kick{display:block;font-size:.42em;line-height:1.05;letter-spacing:.22em;color:#9dff8a;text-shadow:0 3px 0 #1f5a2a,0 6px 0 rgba(0,0,0,.35)}
 .big{margin:0;font-size:clamp(28px,7vw,52px);font-weight:900;text-transform:uppercase;letter-spacing:.03em;text-shadow:0 3px 0 rgba(0,0,0,.4)}
 .sub{margin:6px 0 0;font-size:15px;font-weight:700;opacity:.9}
-.how{list-style:none;margin:18px auto 0;padding:12px 16px;max-width:440px;text-align:left;font-size:15px;line-height:1.35;
-  background:var(--ui-bg);border:1.5px solid var(--ui-line);border-radius:16px}
-.how li{padding:4px 0 4px 24px;position:relative}
-.how li::before{content:"";position:absolute;left:4px;top:11px;width:9px;height:9px;border-radius:3px;background:var(--cta1);transform:rotate(45deg)}
 .best{margin-top:12px;font-weight:800;font-size:14px;letter-spacing:.04em;opacity:.92}
 .cta{margin-top:16px;padding:14px 46px 15px;border-radius:20px;font-weight:900;font-size:22px;letter-spacing:.05em;text-transform:uppercase;
   background:linear-gradient(var(--cta1),var(--cta2));color:var(--cta-ink)!important;box-shadow:0 6px 0 var(--cta-edge),0 12px 24px rgba(0,0,0,.4)}
@@ -146,11 +143,10 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 .ghost{margin:14px 6px 0;padding:10px 22px;border-radius:14px;background:var(--ui-bg);border:1.5px solid var(--ui-line)!important;font-weight:800;font-size:15px}
 @media (max-height:680px){                     /* portal iframes (462-684 px tall): the start screen must fit without scrolling */
   .title{font-size:min(13vw,66px)}
-  .how{margin-top:10px;padding:7px 14px;font-size:13.5px;line-height:1.3;max-width:560px}
-  .how li{padding:3px 0 3px 22px}.how li::before{top:8px}
+  #start .panel{margin-top:3vh}                /* wide and short: the title sits high, the road below it stays in view */
   .best{margin-top:8px}.cta{margin-top:10px;padding:11px 40px 12px;font-size:20px}.ghost{margin-top:10px;padding:8px 18px}
 }
-@media (max-height:500px){.title{font-size:min(12vw,52px)}.how{font-size:12.5px;margin-top:8px}}
+@media (max-height:500px){.title{font-size:min(12vw,52px)}}
 .cards{display:flex;gap:12px;justify-content:center;margin-top:16px}
 .card{flex:1 1 0;max-width:224px;position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 12px 16px;
   background:var(--card);color:var(--card-ink)!important;border-radius:20px;border:3px solid transparent!important;
@@ -175,7 +171,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 }
 @media (max-height:440px){
   .card{padding:8px 10px;gap:4px}.card canvas{width:46px;height:46px}.card .ds{font-size:12px}
-  .cards{margin-top:8px}.how{margin-top:8px;padding:6px 12px;font-size:13px}.title{font-size:44px}.cta{margin-top:8px;padding:9px 34px;font-size:18px}
+  .cards{margin-top:8px}.title{font-size:44px}.cta{margin-top:8px;padding:9px 34px;font-size:18px}
   .statgrid{margin-top:8px!important}
 }
 .rec{display:inline-block;margin-top:10px;padding:4px 14px;border-radius:99px;background:#ffd84a;color:#3a2a00;font-weight:900;font-size:13px;
@@ -231,16 +227,20 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .topbar .big{flex:1;font-size:clamp(22px,5.4vw,40px)}
 .ghost.sm{margin:0;padding:7px 14px;font-size:13px}
-.chgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.chgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
 .chcard{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;min-height:98px;padding:10px 12px;
   border-radius:16px;background:var(--card);color:var(--card-ink);border:3px solid transparent;box-shadow:0 5px 0 rgba(0,0,0,.32);transition:transform .12s}
 .chcard:hover{transform:translateY(-3px)}
+.chcard .th{display:block;width:calc(100% + 10px);height:auto;border-radius:9px;margin:-3px -5px 3px}
 .chcard .num{font-size:26px;font-weight:900;line-height:1}
+.chcard:not(.endless) .num{position:absolute;top:13px;left:15px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.55),0 0 8px rgba(0,0,0,.45)}
 .chcard .cn{font-size:13px;font-weight:800;line-height:1.15}
 .chcard .st{font-size:11px;font-weight:800;color:var(--card-sub);margin-top:auto}
-.chcard .stars{position:absolute;top:9px;right:10px;font-size:13px;letter-spacing:1px;color:#f0a800}
+.chcard .stars{position:absolute;top:11px;right:11px;font-size:13px;letter-spacing:1px;color:#ffd24a;padding:0 6px;border-radius:9px;background:rgba(20,12,30,.6)}
+.chcard .stars:empty{display:none}
 .chcard.next{border-color:var(--cta2)}
-.chcard.locked,.hcard.locked{filter:grayscale(1) brightness(.6)}
+.chcard.locked{filter:brightness(.74) saturate(.8)}
+.hcard.locked{filter:grayscale(1) brightness(.6)}
 .chcard.endless{grid-column:1/-1;min-height:0;flex-direction:row;align-items:center;gap:14px}
 .chcard.endless .st{margin:0 0 0 auto}
 .hcard .nm{font-weight:900;font-size:16px;line-height:1.1}
@@ -274,7 +274,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 #gunNote{z-index:30}
 #gunNote canvas{width:220px;height:132px;max-width:70vw}
 #gunNote h3{margin:4px 0 6px;font-size:22px}
-@media (max-width:760px){.chgrid{grid-template-columns:repeat(2,1fr)}.hgrid{grid-template-columns:repeat(3,1fr)}.sgrid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:760px){.chgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.hgrid{grid-template-columns:repeat(3,1fr)}.sgrid{grid-template-columns:repeat(2,1fr)}}
 /* ---------- talents ---------- */
 .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
 .tcard{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;border-radius:16px;background:var(--card);color:var(--card-ink);
@@ -289,9 +289,6 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 .tpips i.on{background:var(--acc)}
 @media (max-width:760px){.tgrid{grid-template-columns:repeat(2,1fr)}}
 /* ---------- hints, toasts, small panel buttons ---------- */
-#tip{position:absolute;left:0;top:0;display:none;max-width:200px;padding:8px 12px;border-radius:12px;background:#ffd84a;color:#3a2a00;font-weight:900;
-  font-size:13px;line-height:1.2;box-shadow:0 6px 16px rgba(0,0,0,.4);pointer-events:none;animation:pulse 1s infinite}
-#tip.on{display:block}
 #toast{position:absolute;left:50%;top:calc(96px + env(safe-area-inset-top));transform:translateX(-50%);padding:8px 16px;border-radius:99px;background:#ffd84a;
   color:#3a2a00;font-weight:900;font-size:13px;opacity:0;pointer-events:none;white-space:nowrap;box-shadow:0 6px 16px rgba(0,0,0,.4)}
 #toast.show{animation:toast 3s both}
@@ -300,7 +297,6 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 .minib.off{opacity:.35}
 .minib.arm{background:#ff6b57;color:#fff}
 .tcard.locked .nm,.tcard.locked .ds{opacity:.55}
-@media (prefers-reduced-motion:reduce){#tip{animation:none}}
 /* ---------- weapon panel: tap a floor of the tower ---------- */
 #fp{position:absolute;left:0;top:0;display:none;width:250px;padding:9px 10px 10px;border-radius:16px;background:var(--card);color:var(--card-ink);
   border:2.5px solid var(--acc,#fff);box-shadow:0 8px 22px rgba(0,0,0,.45);pointer-events:auto;grid-template-columns:76px 1fr;gap:5px 8px;align-items:center}
@@ -318,6 +314,23 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
 #fp .upbtn.alt{background:linear-gradient(#8af5ab,#35c06c);color:#06301a;box-shadow:0 4px 0 #1d7a45}
 #fpClose{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:8px;background:transparent;color:var(--card-sub);font-weight:900;font-size:17px;line-height:1}
 @media (prefers-reduced-motion:reduce){#btnBuild.ready,.rec,#skillBox.ready #btnSkill{animation:none}}
+/* ---------- keys: shown where there is a keyboard (html.touch hides them) ---------- */
+#skillBox,#btnBuild,#btnFix,#btnUpAll{position:relative}
+.kb{position:absolute;top:-9px;left:12px;min-width:20px;height:18px;padding:0 5px;border-radius:5px;background:#fff;color:#2a1c33;font-family:inherit;
+  font-weight:900;font-size:11px;line-height:18px;font-style:normal;text-align:center;letter-spacing:.04em;text-transform:uppercase;
+  box-shadow:0 2px 0 rgba(0,0,0,.45);pointer-events:none}
+#skillBox .kb{left:auto;right:12px}
+.spBtn .kb{top:-7px;left:-6px}
+.keys{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;margin:14px auto 0;max-width:640px;font-size:12.5px;font-weight:800;
+  text-shadow:0 1px 2px rgba(0,0,0,.7)}
+.keys span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.keys kbd{display:inline-block;min-width:20px;height:19px;padding:0 6px;border-radius:5px;background:#fff;color:#2a1c33;font-family:inherit;font-weight:900;
+  font-size:11px;line-height:19px;text-align:center;text-transform:uppercase;letter-spacing:.04em;text-shadow:none;box-shadow:0 2px 0 rgba(0,0,0,.45)}
+html.touch .kb,html.touch .keys{display:none!important}
+#start .keys{max-width:430px}
+/* ---------- coach marks: their own layer, above the HUD ---------- */
+#coach{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none}
+#coach.on{display:block}
 </style>
 </head>
 <body>
@@ -351,6 +364,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
         <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2c3 2.5 4.5 6 4.5 9.5V16h-9v-4.5C7.5 8 9 4.5 12 2z"/><path d="M7.5 12L4 16v3l3.5-1.5zM16.5 12L20 16v3l-3.5-1.5z"/><path d="M10 17h4l-2 5z" fill="#ffb347"/></svg>
       </button>
       <div class="skillMeter"><span id="skillLabel">Barrage</span><div class="skillBar"><i id="skillFill"></i></div></div>
+      <kbd class="kb">Space</kbd>
     </div>
     <div id="spSkills" aria-label="Special weapon skills"></div>
     <div id="pips" aria-label="Bomb charges">
@@ -360,15 +374,15 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
     </div>
     <div id="rightHud">
     <button id="btnUpAll" aria-label="Upgrade every weapon"><span>Upgrade all</span><i class="coinIco"></i><b id="upAllCost">0</b></button>
-    <button id="btnFix" aria-label="Repair all floors"><span>Repair all</span><i class="coinIco"></i><b id="fixCost">0</b></button>
+    <button id="btnFix" aria-label="Repair all floors"><span>Repair all</span><i class="coinIco"></i><b id="fixCost">0</b><kbd class="kb">R</kbd></button>
     <button id="btnBuild" class="off">
       <span class="bl"><b id="buildLabel">Build a floor</b><small id="buildSub">Floor 1 / 6</small></span>
       <span class="bc"><i class="coinIco"></i><b id="buildCost">35</b></span>
+      <kbd class="kb">B</kbd>
     </button>
     </div>
   </div>
 
-  <div id="tip" aria-hidden="true"></div>
   <div id="toast" aria-live="polite"></div>
   <div id="fp" role="dialog" aria-label="Weapon upgrade">
     <canvas id="fpCv" width="228" height="144"></canvas>
@@ -389,16 +403,12 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
   <div id="start" class="overlay on">
     <div class="panel">
       <h1 class="title"><span class="kick">Zombie</span>Tower<br>March</h1>
-      <ul class="how">
-        <li>Your tower rolls forward and its turrets fire on their own.</li>
-        <li><b>Tap anywhere</b> to lob a bomb. Fill the bar to unleash <b>Barrage</b>.</li>
-        <li>Build floors with coins. <b>Tap a weapon</b> on the tower to upgrade or repair it.</li>
-        <li>Every floor has its own health. Clear the chapters to unlock weapons and heroes, and spend your stars on <b>talents</b>.</li>
-      </ul>
       <div class="best" id="bestLine"></div>
       <div class="best" id="saveWarn" style="display:none;color:#ffb37a">This browser cannot save progress. Open the link in Safari or Chrome, not in private mode.</div>
-      <button class="cta" id="btnStart">Play</button><br>
-      <button class="ghost langBtn" data-noi18n>中文</button>    </div>
+      <button class="cta" id="btnStart">Play</button>
+      <div class="keys"><span><kbd>Click</kbd>Bomb</span><span><kbd>Space</kbd>Barrage</span><span><kbd>B</kbd>Build</span><span><kbd>R</kbd>Repair all</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>Weapon skills</span><span><kbd>P</kbd>Pause</span></div>
+      <button class="ghost langBtn" data-noi18n>中文</button>
+    </div>
   </div>
 
   <div id="chapters" class="overlay">
@@ -470,6 +480,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
       <button class="cta" id="btnResume">Resume</button><br>
       <button class="ghost" id="btnRestart">Restart</button><button class="ghost" data-go="chapters">Quit to map</button><br>
       <button class="ghost" id="btnMusic">Music: on</button><button class="ghost langBtn" data-noi18n>中文</button>
+      <div class="keys"><span><kbd>Click</kbd>Bomb</span><span><kbd>Space</kbd>Barrage</span><span><kbd>B</kbd>Build</span><span><kbd>R</kbd>Repair all</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>Weapon skills</span><span><kbd>P</kbd>Pause</span></div>
     </div>
   </div>
 
@@ -514,6 +525,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;touch-action:manipulat
       <p class="sub"><b id="adSec">3</b></p>
     </div>
   </div>
+  <canvas id="coach" aria-hidden="true"></canvas>
 </div>
 
 <script>
@@ -1118,8 +1130,9 @@ const AudioSys = (() => {
   function hush(h) { hushed = h; if (master) master.gain.value = muted || h ? 0 : 0.55; }      // an ad is playing
   return { unlock, play, setMuted, hush, setMusic, toggleMusic, get muted() { return muted; }, get music() { return mOn; } };
 })();
-const sfx = AudioSys.play;
+const sfx = name => { if (S && S.demo && name !== 'click' && name !== 'pick' && name !== 'deny') return; AudioSys.play(name); };   // the title screen's own battle is silent
 const buzz = ms => {                          // native haptics inside the app wrapper, navigator.vibrate on the web
+  if (S && S.demo) return;
   try {
     const H = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
     if (H) { const pr = H.vibrate({ duration: ms }); if (pr && pr.catch) pr.catch(() => {}); }
@@ -1138,7 +1151,7 @@ const el = {
   boss: $('bossbar'), bossFill: $('bossFill'), banner: $('banner'), pips: $('pips'), pipRow: $('pipRow'),
   fixAll: $('btnFix'), fixCost: $('fixCost'), upAll: $('btnUpAll'), upAllCost: $('upAllCost'), build: $('btnBuild'), buildLabel: $('buildLabel'), buildSub: $('buildSub'), buildCost: $('buildCost'),
   start: $('start'), bestLine: $('bestLine'), choice: $('choice'), chTitle: $('chTitle'), chSub: $('chSub'), cards: $('cards'), chCancel: $('chCancel'),
-  fp: $('fp'), fpCv: $('fpCv'), fpName: $('fpName'), fpMk: $('fpMk'), fpDmg: $('fpDmg'), fpHp: $('fpHp'), fpUp: $('fpUp'), fpUpL: $('fpUpL'), fpUpCost: $('fpUpCost'), fpFix: $('fpFix'), fpFixCost: $('fpFixCost'), fpDown: $('fpDown'), fpUpF: $('fpUpF'), fpSell: $('fpSell'), tip: $('tip'), toast: $('toast'), awards: $('awards'), shop: $('shop'), aGrid: $('aGrid'),
+  fp: $('fp'), fpCv: $('fpCv'), fpName: $('fpName'), fpMk: $('fpMk'), fpDmg: $('fpDmg'), fpHp: $('fpHp'), fpUp: $('fpUp'), fpUpL: $('fpUpL'), fpUpCost: $('fpUpCost'), fpFix: $('fpFix'), fpFixCost: $('fpFixCost'), fpDown: $('fpDown'), fpUpF: $('fpUpF'), fpSell: $('fpSell'), toast: $('toast'), awards: $('awards'), shop: $('shop'), aGrid: $('aGrid'),
   pause: $('pause'), over: $('over'), newRec: $('newRec'), oDist: $('oDist'), oWave: $('oWave'), oKills: $('oKills'), oBest: $('oBest'),
   oWaveL: $('oWaveL'), oBestL: $('oBestL'), oTip: $('oTip'), bossName: $('bossName'),
   spSkills: $('spSkills'), skillBox: $('skillBox'), btnSkill: $('btnSkill'), skillFill: $('skillFill'), skillLabel: $('skillLabel'),
@@ -1146,10 +1159,16 @@ const el = {
   win: $('win'), winTitle: $('winTitle'), winStars: $('winStars'), winUnlocks: $('winUnlocks'), wDist: $('wDist'), wKills: $('wKills'), wHp: $('wHp'), wParts: $('wParts'),
 };
 const canvas = $('game'), ctx = canvas.getContext('2d');
+const coachCv = $('coach'), cctx = window.TM_COACH_HOST ? null : coachCv.getContext('2d');   // coach marks sit above the HUD: a layer of their own (a host that draws the HUD itself draws them too)
 const view = { w: 1040, h: 720, scale: 1, dpr: 1, gy: 560, tsx: 150, pace: 1 };   // gy = ground line (screen, logical)
 const cam = { x: 0 };
 const perf = { q: 0, ema: 0.017, bad: 0 };   // q = quality step: 0 full, 1 lighter, 2 lightest (drops automatically on slow phones)
 const ptr = { cx: 0, cy: 0, inside: false, mouse: false };
+// Finger or mouse: hints name the right gesture, and keys are shown only where there is a keyboard.
+// A portal that knows the device says so (window.TM_DEVICE); otherwise the last pointer or key used decides.
+let TOUCH = window.TM_DEVICE ? window.TM_DEVICE !== 'desktop' : !window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+document.documentElement.classList.toggle('touch', TOUCH);
+function setTouch(v) { if (window.TM_DEVICE || v === TOUCH) return; TOUCH = v; document.documentElement.classList.toggle('touch', v); applyLang(); }
 const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
 const calmMq = window.matchMedia('(prefers-reduced-motion: reduce)');
 // an explicit data-theme on <html> (set by a host page) wins over the OS setting
@@ -1160,7 +1179,7 @@ let best = store.get('towerMarch.best', { dist: 0, wave: 0 });
 let realT = 0, lastT = 0;
 
 // World coordinates: x grows to the right, y = 0 is the ground, negative y is up.
-let S, T;                                   // run state, tower
+var S, T;                                   // run state, tower (var: the sound layer above looks at S before a run exists)
 const enemies = [], shots = [], bombs = [], rockets = [], spits = [], coins = [], parts = [], fx = [], texts = [], decals = [];
 let choice = null, choiceAt = 0, overAt = 0;
 const queue = [];                           // scratch list for the melee queue
@@ -1237,7 +1256,7 @@ function hexA(c, a) {                          // '#rgb' / '#rrggbb' with an alp
 }
 function floatText(x, y, str, color, size = 14, life = 0.7) {
   if (texts.length >= CFG.MAX_TEXTS) texts.shift();
-  texts.push({ x: x + rand(-6, 6), y, vy: -80, life, max: life, str: tr(String(str)), color, size, dead: false });
+  texts.push({ x: x + rand(-6, 6), y, vy: -80, life, max: life, str: loc(String(str)), color, size, dead: false });
 }
 function decal(x, y, r, color, a) { if (decals.length >= CFG.MAX_DECALS) decals.shift(); decals.push({ x, y, r, color, a, life: 9, dead: false }); }
 
@@ -1303,7 +1322,7 @@ function hurt(e, dmg, o) {
   if (e.hp <= 0) kill(e);
 }
 function kill(e) {
-  e.dead = true; S.kills++; if (S.mode === 'play') S.score += e.type === 'boss' ? 500 : Math.round(e.d.cost * 10); SAVE.stat.kills = (SAVE.stat.kills || 0) + 1;
+  e.dead = true; S.kills++; if (S.mode === 'play') S.score += e.type === 'boss' ? 500 : Math.round(e.d.cost * 10); if (!S.demo) SAVE.stat.kills = (SAVE.stat.kills || 0) + 1;
   if (e.frozenT > 0) shatter(e);                 // killed in the ice: it shatters
   const cy = ey(e), big = e.type === 'boss', mid = e.type === 'brute';
   if (e.acc > 0) floatText(e.x, cy - e.r - 14, Math.round(e.acc), '#ffffff', 14);
@@ -1328,7 +1347,7 @@ function explode(x, y, rad, dmg, o) {
     const d = Math.max(0, Math.hypot(e.x - x, ey(e) - y) - e.r);
     if (d < rad) { const f = 1 - 0.5 * d / rad; hurt(e, dmg * f, { kb: o.kb * f, blast: true }); }
   }
-  if (S.kills - k0 >= 6) ach('boom');
+  if (S.kills - k0 >= 6 && !S.demo) ach('boom');
   if (o.big) buzz(18);
   boomFx(x, y, rad, o.big);
   S.shake = Math.max(S.shake, o.big ? 0.62 : 0.22);
@@ -1379,6 +1398,7 @@ function addFloor(type, instant) {
   T.floors.push({ type, lv: 1, hp, maxHp: hp, hurt: 0, spent: 0, cd: rand(0.2, 0.5), angle: 0, recoil: 0, flashT: 0, tg: null, acq: 0,
                   drop: instant ? 0 : -(view.gy + 80), vy: instant ? 0 : 300, on: !!instant, landed: !!instant });
   if (instant) T.nOn++;
+  else if (!SAVE.tut.build) { SAVE.tut.build = 1; persist(); }
 }
 function landFx(i, f) {
   const y = -(CFG.HULL_TOP + i * CFG.FLOOR_H), d = TURRETS[f.type];
@@ -1663,6 +1683,7 @@ function launchBomb(wx, wy) {
   const b = S.bomb;
   if (b.charges <= 0) { sfx('deny'); nudge(el.pips, 'shake'); return; }
   b.charges--;
+  if (!SAVE.tut.bomb && S.mode === 'play') { SAVE.tut.bomb = 1; persist(); }
   const tx = Math.max(wx, T.x + CFG.BASE_W / 2 + 10), ty = Math.min(wy, -6);
   let o = mortarPos();
   const dist = Math.hypot(tx - o.x, ty - o.y), arc = 90 + dist * 0.16;
@@ -1985,10 +2006,10 @@ function update(dt) {
     const b = S.bomb;
     if (b.charges < b.max) { b.t += dt; if (b.t >= b.cd) { b.t = 0; b.charges++; sfx('recharge'); } } else b.t = 0;
     if (S.waveState !== 'idle') skillGain(CFG.SKILL_PASSIVE * dt);
-  }
+  } else if (S.demo) updateDemo(dt);
   updateTower(dt);
   updateEnemies(dt);
-  if (S.mode === 'play' && S.gm !== 'bomb') updateTurrets(dt);
+  if ((S.mode === 'play' && S.gm !== 'bomb') || S.demo) updateTurrets(dt);
   updateBurn(dt);
   updateSurges(dt); updateUlt(dt);
   updateShots(dt);
@@ -2003,6 +2024,23 @@ function update(dt) {
   compact(enemies); compact(shots); compact(bombs); compact(rockets); compact(spits); compact(coins); compact(parts); compact(texts); compact(fx); compact(decals);
 }
 
+// ---- the title screen's own battle: a three-floor tower holding the road by itself. Silent, and it counts for nothing. ----
+function startDemo() {
+  S.demo = true; S.demoT = 0.5; S.demoB = 2.5;
+  addFloor('cannon', true); if (view.w >= 820) addFloor('shotgun', true);        // a shorter tower where the screen is narrow, so it stays clear of the title
+  sumHp();
+}
+function updateDemo(dt) {
+  const b = S.bomb;
+  if (b.charges < b.max) { b.t += dt; if (b.t >= b.cd) { b.t = 0; b.charges++; } }
+  S.demoT -= dt;
+  if (S.demoT <= 0 && enemies.length < 9) { spawnEnemy(Math.random() < 0.2 ? 'runner' : 'walker'); S.demoT = rand(0.55, 1.5); }
+  S.demoB -= dt;
+  if (S.demoB <= 0) {                          // now and then the hero lobs a bomb into the thick of them
+    const near = enemies.filter(e => !e.dead && e.x < cam.x + view.w - 40 && e.x > T.x + 150).sort((a, b) => a.x - b.x);
+    if (near.length >= 2 && b.charges > 0) { launchBomb(near[1].x - 10, -20); S.demoB = rand(3, 5); } else S.demoB = 0.4;
+  }
+}
 function updateTower(dt) {
   const rolling = (S.mode === 'play' || S.mode === 'menu' || S.mode === 'winning' || S.mode === 'won') && !T.blocked;
   T.vx += ((rolling ? CFG.SPEED * S.speedMul : 0) - T.vx) * Math.min(1, dt * 5);
@@ -2195,6 +2233,7 @@ function syncSpSkills() {                      // one round button per kind of s
       b.className = 'spBtn'; b.dataset.type = ty; b.style.setProperty('--acc', wcol(ty)); b.setAttribute('aria-label', d.skill + (fl.length > 1 ? ' ×' + fl.length : ''));
       const sp = document.createElement('span'); sp.textContent = SP_ICON[d.sp]; b.appendChild(sp);
       if (fl.length > 1) { const n = document.createElement('i'); n.textContent = '×' + fl.length; b.appendChild(n); }
+      const kb = document.createElement('kbd'); kb.className = 'kb'; kb.textContent = el.spSkills.children.length + 1; b.appendChild(kb);
       b.addEventListener('click', () => { const g = spFloors().find(j => T.floors[j].type === ty); if (g !== undefined) castSpecial(g); });
       el.spSkills.appendChild(b);
     }
@@ -2507,7 +2546,7 @@ function updateTurrets(dt) {
     f.angle = angLerp(f.angle, want, 1 - Math.exp(-dt * 16));
     if (f.cd <= 0 && Math.abs(angDiff(f.angle, want)) < (f.type === 'cannon' || f.type === 'shotgun' || f.type === 'inferno' || f.type === 'terra' || f.type === 'tide' ? 0.035 : 0.3)) {   // shells and pellets fly where the barrel points, so wait until it is on target
       fire(f, px, py, e); f.cd = 1 / tstat(f).rate; }
-    if (S.mode !== 'play') return;
+    if (S.mode !== 'play' && !S.demo) return;
   }
 }
 
@@ -2604,6 +2643,7 @@ function resize() {
   const cw = window.innerWidth, ch = window.innerHeight;
   view.dpr = Math.min(window.devicePixelRatio || 1, [2, 1.5, 1][perf.q]);
   canvas.width = Math.round(cw * view.dpr); canvas.height = Math.round(ch * view.dpr);
+  if (cctx) { coachCv.width = canvas.width; coachCv.height = canvas.height; }
   let s = Math.min(ch / CFG.VIEW_H, cw / CFG.MIN_W);          // fit the fixed logical height, never narrower than MIN_W
   s = Math.max(s, Math.min(cw / CFG.MAX_W, ch / 620));        // on wide screens zoom in instead of showing more road
   view.scale = s; view.w = cw / s; view.h = ch / s;
@@ -5218,7 +5258,7 @@ function syncHud() {
   if (hud.can !== can) { hud.can = can; el.build.classList.toggle('off', !can); el.build.classList.toggle('ready', can); el.build.setAttribute('aria-disabled', String(!can)); }
   const boss = S.boss && !S.boss.dead ? Math.round(clamp(S.boss.hp / S.boss.maxHp, 0, 1) * 200) / 2 : -1;
   if (hud.boss !== boss) { hud.boss = boss; el.boss.classList.toggle('on', boss >= 0); if (boss >= 0) { el.bossFill.style.width = boss + '%'; setText(el.bossName, 'bn', S.boss.name); } }
-  syncPanel(); syncTip();
+  syncPanel();
 }
 // The weapon panel belongs to one floor: upgrade that weapon's Mk, or repair that floor, with coins.
 function syncPanel() {
@@ -5257,23 +5297,82 @@ function selectFloor(i) {
   S.sel = i; hud.fp = null;
   if (i >= 0) { sfx('click'); if (!SAVE.tut.up) { SAVE.tut.up = 1; persist(); } }
 }
-// First-time hints: one yellow bubble at a time, gone for good once the player has done the thing.
-function syncTip() {
-  let text = '', x = 0, y = 0;
-  if (S.mode === 'play' && S.sel < 0) {
-    const s = view.scale, tut = SAVE.tut;
-    const up = tut.up || S.gm === 'bomb' || T.floors.length < 2 ? -1 : T.floors.findIndex(f => f.on && f.lv < CFG.TIER_MAX && S.coins >= upCost(f.lv));
-    const bad = tut.fix || S.gm === 'bomb' ? -1 : T.floors.findIndex(f => f.on && f.hp < f.maxHp * 0.5 && S.coins >= repairCost(f));
-    if (up >= 0) { text = '◀ Tap a weapon to upgrade it'; x = (T.x - cam.x + 92) * s; y = (view.gy + pivotY(up)) * s - 18; }
-    else if (bad >= 0) { text = '◀ Floor damaged. Tap it to repair'; x = (T.x - cam.x + 92) * s; y = (view.gy + pivotY(bad)) * s - 18; }
-    else if (!tut.skill && S.skill >= 1) { const r = el.skillBox.getBoundingClientRect(); text = 'Barrage is ready. Tap the rocket ▼'; x = r.left; y = r.top - 46; }
-    x = Math.round(clamp(x, 6, Math.max(6, window.innerWidth - 206))); y = Math.round(Math.max(60, y));
+// ---- coach marks: a first run is taught by pointing, not by reading. One mark at a time, on a layer above the HUD,
+//      and each is gone for good once the player has done the thing (SAVE.tut). ----
+function coachStep() {
+  if (S.mode !== 'play' || S.sel >= 0) return null;
+  const s = view.scale, tut = SAVE.tut, guns = S.gm !== 'bomb', wx = (T.x - cam.x + 52) * s;
+  const btn = (k, node, rad, ax) => { const r = node.getBoundingClientRect(); return r.width ? { k, btn: r, rad, ax } : null; };
+  if (guns && !tut.build && T.floors.length < 2 && S.coins >= buildCost()) { const c = btn('build', el.build, 18, 0.22); if (c) return c; }
+  const up = !guns || tut.up || T.floors.length < 2 ? -1 : T.floors.findIndex(f => f.on && f.lv < CFG.TIER_MAX && S.coins >= upCost(f.lv));
+  if (up >= 0) return { k: 'up', x: wx, y: (view.gy + pivotY(up)) * s, label: 'Upgrade', ring: 24 };
+  const bad = !guns || tut.fix ? -1 : T.floors.findIndex(f => f.on && f.hp < f.maxHp * 0.5 && S.coins >= repairCost(f));
+  if (bad >= 0) return { k: 'fix', x: wx, y: (view.gy + pivotY(bad)) * s, label: 'Repair', ring: 24 };
+  if (!tut.skill && S.skill >= 1) { const c = btn('skill', el.btnSkill, 23, 0.5); if (c) return c; }
+  if (!tut.bomb && S.bomb.charges > 0 && (S.waveState === 'spawn' || S.waveState === 'fight')) {
+    // the first bomb: a target on the zombie at the front, or on the road ahead while none is in view (a narrow screen shows little road)
+    let lead = null;
+    for (const e of enemies) if (!e.dead && !e.fly && e.x < cam.x + view.w - 20 && e.x > T.x + 110 && (!lead || e.x < lead.x)) lead = e;
+    const hull = (T.x - cam.x + CFG.BASE_W / 2) * s, far = window.innerWidth - 48;
+    return { k: 'bomb', x: lead ? clamp((lead.x - cam.x) * s, hull + 40, far) : Math.min(far, hull + 60 + 170 * s), y: (view.gy - (lead ? lead.h * 0.5 : 34)) * s, label: 'Tap!', ring: 30 };
   }
-  const key = text + x + ',' + y;
-  if (hud.tip === key) return;
-  hud.tip = key; el.tip.textContent = text; el.tip.classList.toggle('on', !!text);
-  if (text) { el.tip.style.left = x + 'px'; el.tip.style.top = y + 'px'; }
+  return null;
 }
+let coachK = '', coachAt = 0, coachOn = false, coachX = 0, coachY = 0, coachLast = 0;
+function coachHand(g, x, y, press) {            // a gloved finger; its tip is at x, y
+  g.save(); g.translate(x, y); g.rotate(-0.3); if (press) g.scale(0.92, 0.92);
+  const parts = [[-6, 0, 12, 27, 6], [-6, 15, 27, 23, 8], [-15, 19, 13, 10, 5]];
+  g.strokeStyle = '#2a1c33'; g.lineWidth = 5; for (const p of parts) { rr(g, p[0], p[1], p[2], p[3], p[4]); g.stroke(); }
+  g.fillStyle = '#fff'; for (const p of parts) { rr(g, p[0], p[1], p[2], p[3], p[4]); g.fill(); }
+  g.restore();
+}
+function coachMouse(g, x, y, press) {           // a mouse with its left button lit; x, y is its top left corner
+  g.strokeStyle = '#2a1c33'; g.lineWidth = 3; g.fillStyle = '#fff';
+  rr(g, x, y, 26, 38, 13); g.fill();
+  g.fillStyle = press ? '#ff8a2b' : '#ffd84a';
+  g.beginPath(); g.moveTo(x + 13, y); g.lineTo(x + 13, y + 16); g.lineTo(x, y + 16); g.lineTo(x, y + 13); g.arc(x + 13, y + 13, 13, Math.PI, Math.PI * 1.5); g.closePath(); g.fill();
+  rr(g, x, y, 26, 38, 13); g.stroke();
+  g.lineWidth = 2.5; g.beginPath(); g.moveTo(x, y + 16); g.lineTo(x + 26, y + 16); g.moveTo(x + 13, y); g.lineTo(x + 13, y + 16); g.stroke();
+}
+function drawCoach(g, sc) {                     // draws the current mark on g (sc = canvas pixels per CSS pixel); true while one is showing
+  const c = coachStep();
+  if (!c) { coachK = ''; return false; }
+  if (c.k !== coachK) { coachK = c.k; coachAt = realT; coachX = c.x; coachY = c.y; }
+  else if (!c.btn) { const f = 1 - Math.exp(-Math.min(0.1, realT - coachLast) * 9); coachX += (c.x - coachX) * f; coachY += (c.y - coachY) * f; c.x = coachX; c.y = coachY; }   // glide from one target to the next
+  coachLast = realT;
+  const a = clamp((realT - coachAt - 0.35) / 0.25, 0, 1); if (a <= 0) return false;
+  const ph = (realT * 1.25) % 1, press = ph < 0.32, W = window.innerWidth;
+  g.save(); g.setTransform(sc, 0, 0, sc, 0, 0); g.lineJoin = 'round'; g.lineCap = 'round';
+  if (c.btn) {                                 // a button of the HUD: a halo spreading from its edge, and an arrow dropping onto it
+    const r = c.btn, ax = r.left + r.width * c.ax, ay = r.top - 3 + Math.sin(realT * 7) * 5;
+    g.strokeStyle = '#ffd84a'; g.lineWidth = 3.5;
+    for (let i = 0; i < 2; i++) { const u = (ph + i * 0.5) % 1, d = 3 + 13 * u; g.globalAlpha = a * (1 - u); rr(g, r.left - d, r.top - d, r.width + d * 2, r.height + d * 2, c.rad + d); g.stroke(); }
+    g.globalAlpha = a; g.fillStyle = '#ffd84a'; g.strokeStyle = '#2a1c33'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax - 14, ay - 17); g.lineTo(ax - 5.5, ay - 17); g.lineTo(ax - 5.5, ay - 33); g.lineTo(ax + 5.5, ay - 33); g.lineTo(ax + 5.5, ay - 17); g.lineTo(ax + 14, ay - 17); g.closePath();
+    g.stroke(); g.fill();
+  } else {                                     // a target on the battlefield: rings closing in, a finger (or a mouse button) pressing, one word
+    const r = c.ring || 24;
+    g.strokeStyle = '#ffd84a'; g.lineWidth = 3.5;
+    for (let i = 0; i < 2; i++) { const u = (ph + i * 0.5) % 1; g.globalAlpha = a * (1 - u); g.beginPath(); g.arc(c.x, c.y, r * (1.35 - 0.85 * u), 0, TAU); g.stroke(); }
+    g.globalAlpha = a;
+    if (TOUCH) coachHand(g, c.x + 3, c.y + (press ? 2 : 9), press); else coachMouse(g, c.x + 14, c.y + 12 + (press ? 0 : 3), press);
+    const label = loc(c.label);
+    g.font = '900 14px system-ui,sans-serif'; g.textBaseline = 'middle'; g.textAlign = 'center';
+    const pw = g.measureText(label).width + 26, side = c.k !== 'bomb';                          // on the tower the word sits beside the weapon, not over the floor above
+    const px = clamp(side ? c.x + r * 1.35 + 8 : c.x - pw / 2, 6, Math.max(6, W - pw - 6)), py = Math.max(6, side ? c.y - 36 : c.y - r * 1.35 - 35);
+    g.fillStyle = 'rgba(24,16,36,.9)'; g.strokeStyle = '#ffd84a'; g.lineWidth = 2; rr(g, px, py, pw, 30, 15); g.fill(); g.stroke();
+    g.fillStyle = '#fff'; g.fillText(label, px + pw / 2, py + 15.5);
+  }
+  g.restore();
+  return true;
+}
+function coachFrame() {                        // web: clear the layer and draw the mark, and hide the layer while there is none
+  if (!cctx) return;
+  if (coachOn) { cctx.setTransform(1, 0, 0, 1, 0, 0); cctx.clearRect(0, 0, coachCv.width, coachCv.height); }
+  const on = drawCoach(cctx, view.dpr);
+  if (on !== coachOn) { coachOn = on; coachCv.classList.toggle('on', on); }
+}
+window.TM_COACH = drawCoach;                   // for a host that draws the HUD itself (the Douyin build)
 function toast(text) { el.toast.textContent = text; nudge(el.toast, 'show'); }
 // ---- ads: rewarded video, only where the player asks for it. One thin layer over whichever network hosts the game. ----
 // window.TM_ADS is set by the portal builds ('crazygames' / 'poki'); the Android app finds AdMob by itself; '#adtest' shows a placeholder.
@@ -5283,6 +5382,7 @@ const Ads = (() => {
   const kind = window.TM_ADS || (admob ? 'admob' : /adtest/.test(location.hash + location.search) ? 'test' : '');
   let ready = false, busy = false, started = false, loaded = false, loading = false, playing = false, done = null, got = false, runs = 0;
   const cg = () => window.CrazyGames.SDK, pk = () => window.PokiSDK;
+  const noAds = !!window.TM_NO_ADS;            // set by a portal build that must not show ads at all
   const begin = () => { busy = started = true; AudioSys.hush(true); };
   function end(ok) {                           // every way out of an ad lands here; the waiting callback runs once
     const cb = done; done = null; busy = false; AudioSys.hush(false); lastT = performance.now();
@@ -5302,7 +5402,7 @@ const Ads = (() => {
   }
   const available = () => !!kind && ready && !busy && (kind !== 'admob' || loaded);
   function rewarded(cb) {
-    if (!available()) { cb(false); return; }
+    if (noAds || !available()) { cb(false); return; }
     done = cb; got = false;
     try {
       if (kind === 'crazygames') { wait(); cg().ad.requestAd('rewarded', { adStarted: begin, adFinished: () => end(true), adError: () => end(false) }); }
@@ -5313,7 +5413,7 @@ const Ads = (() => {
   }
   function breakThen(fn) {                     // a natural pause between runs: the web portals may show an ad here
     if (busy) return;
-    if (!ready || (kind !== 'crazygames' && kind !== 'poki') || (kind === 'crazygames' && !runs++)) { fn(); return; }     // CrazyGames: never before the first run
+    if (!ready || noAds || (kind !== 'crazygames' && kind !== 'poki') || (kind === 'crazygames' && !runs++)) { fn(); return; }     // CrazyGames: never before the first run
     done = () => fn();
     try {
       wait();
@@ -5338,7 +5438,7 @@ const Ads = (() => {
       admob.initialize({}).then(() => { ready = true; preload(); }, () => {});
     } else if (kind === 'test') ready = true;
   } catch (_) {}
-  return { kind, available, rewarded, breakThen, play };
+  return { kind, available: () => !noAds && available(), rewarded, breakThen, play };
 })();
 const NO_AD = 'No ad available right now';
 // ---- analytics: a no-op unless the page was built with a Google Analytics tag (see build-web.mjs) ----
@@ -5351,7 +5451,8 @@ const STAR = '★', STAR0 = '☆';
 function go(name) {
   for (const sc of SCREENS) hide(el[sc]);
   screen = name; live = []; choice = null; Ads.play(false);
-  if (S.mode !== 'menu') newRun(0);          // leaving a run: back to the idle scene behind the menus
+  if (S.mode !== 'menu' || S.demo || name === 'start') newRun(0);          // leaving a run (or the title): back to the idle scene behind the menus
+  if (name === 'start') startDemo();
   el.ui.classList.add('inmenu');
   if (name === 'start') showBest(); else if (name === 'chapters') renderChapters(); else if (name === 'heroes') renderHeroes(); else if (name === 'talents') renderTalents(); else if (name === 'awards') renderAwards(); else if (name === 'shop') renderShop();
   show(el[name]);
@@ -5376,6 +5477,35 @@ function setStars() { for (const n of document.querySelectorAll('.starsText')) n
 function showBest() {
   el.bestLine.textContent = SAVE.cleared ? 'Chapters cleared: ' + SAVE.cleared + ' / ' + CHAPTERS.length + ' · Stars: ' + totalStars() + ' / ' + CHAPTERS.length * 3 : 'Chapter 1 awaits.';
 }
+function drawThumb(cv, c, locked) {           // a chapter's place in miniature: its sky, sun or moon, hills, skyline and road
+  const B = BIOMES[biomeOf(c)], p = B.pal, g = cv.getContext('2d'), w = cv.width, h = cv.height, gy = h * 0.8;
+  let sd = c * 7919 + 13; const rnd = () => (sd = sd * 16807 % 2147483647) / 2147483647;
+  const sky = g.createLinearGradient(0, 0, 0, gy); p.sky.forEach((col, i) => sky.addColorStop(p.stops[i], col));
+  g.fillStyle = sky; g.fillRect(0, 0, w, h);
+  if (!B.indoor) {
+    const ox = w * (0.6 + 0.22 * rnd()), oy = h * 0.4;
+    g.fillStyle = 'rgba(' + p.glow + ',.3)'; g.beginPath(); g.arc(ox, oy, h * 0.3, 0, TAU); g.fill();
+    g.fillStyle = p.orb; g.beginPath(); g.arc(ox, oy, h * 0.17, 0, TAU); g.fill();
+  }
+  for (let L = 0; L < 2; L++) {
+    const base = gy - h * (0.3 - L * 0.13);
+    g.fillStyle = p.mtn[L]; g.beginPath(); g.moveTo(0, gy);
+    for (let i = 0; i <= 7; i++) g.lineTo(i / 7 * w, base - rnd() * h * 0.22);
+    g.lineTo(w, gy); g.closePath(); g.fill();
+  }
+  g.fillStyle = p.bld[1];
+  for (let x = -6; x < w;) { const bw = 14 + rnd() * 22, bh = h * (0.1 + rnd() * 0.3); g.fillRect(x, gy - bh, bw, bh + 1); x += bw + 2 + rnd() * 18; }
+  g.fillStyle = p.ground; g.fillRect(0, gy, w, h - gy);
+  g.fillStyle = p.groundTop; g.fillRect(0, gy, w, 3);
+  g.fillStyle = p.dash; for (let x = 10; x < w; x += 46) g.fillRect(x, gy + (h - gy) * 0.55, 22, 3);
+  if (locked) {                                // not open yet: dimmed, under a padlock
+    g.fillStyle = 'rgba(10,6,16,.5)'; g.fillRect(0, 0, w, h);
+    const cx = w / 2, cy = h / 2 + 5;
+    g.strokeStyle = '#fff'; g.lineWidth = 6; g.beginPath(); g.arc(cx, cy - 12, 12, Math.PI, 0); g.stroke();
+    g.fillStyle = '#fff'; rr(g, cx - 19, cy - 12, 38, 30, 6); g.fill();
+    g.fillStyle = 'rgba(10,6,16,.75)'; g.beginPath(); g.arc(cx, cy + 1, 4.5, 0, TAU); g.fill(); g.fillRect(cx - 1.75, cy + 1, 3.5, 9);
+  }
+}
 function renderChapters() {
   setStars(); el.chGrid.textContent = '';
   CHAPTERS.forEach((ch, i) => {
@@ -5387,6 +5517,7 @@ function renderChapters() {
     for (let k = 1; k <= stagesOf(c); k++) { const d = document.createElement('i'); d.className = (k <= bs ? 'on' : '') + (k === stagesOf(c) ? ' boss' : ''); b.children[2].appendChild(d); }
     b.children[3].textContent = !open ? 'Clear chapter ' + (c - 1) : done ? 'Cleared' : bs ? 'Best ' + bs + ' / ' + stagesOf(c) : 'New';
     b.children[4].textContent = done ? STAR.repeat(st) + STAR0.repeat(3 - st) : '';
+    const th = document.createElement('canvas'); th.className = 'th'; th.width = 320; th.height = 100; drawThumb(th, c, !open); b.prepend(th);
     b.setAttribute('aria-label', 'Chapter ' + c + ', ' + ch.name + (open ? '' : ', locked'));
     b.addEventListener('click', () => { if (open) startRun(c); else { sfx('deny'); nudge(b, 'deny'); } });
     el.chGrid.appendChild(b);
@@ -5589,6 +5720,7 @@ canvas.addEventListener('pointerdown', e => {
   launchBomb(p.x, p.y);
 });
 canvas.addEventListener('pointermove', e => { ptr.cx = e.clientX; ptr.cy = e.clientY; ptr.mouse = e.pointerType === 'mouse'; ptr.inside = true; });
+window.addEventListener('pointerdown', e => setTouch(e.pointerType !== 'mouse'), true);
 canvas.addEventListener('pointerleave', () => { ptr.inside = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('gesturestart', e => e.preventDefault());
@@ -5648,7 +5780,8 @@ for (const b of document.querySelectorAll('[data-go]')) b.addEventListener('clic
 window.addEventListener('keydown', e => {
   if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
-  if (S.mode === 'choice') { if (k >= '1' && k <= '3') pickChoice(+k - 1); else if (k === 'escape') cancelChoice(); return; }
+  if (k.length === 1) setTouch(false);
+  if (S.mode === 'choice') { if (k >= '1' && k <= '9') pickChoice(+k - 1); else if (k === 'escape') cancelChoice(); return; }
   if (k === 'm') toggleMute();
   else if (k === 'p' || k === 'escape') {
     if (S.mode === 'play' || S.mode === 'pause') togglePause();
@@ -5657,9 +5790,10 @@ window.addEventListener('keydown', e => {
   else if (S.mode === 'play' && (k === 'q' || k === ' ')) { e.preventDefault(); castSkill(); }   // Q or Space: Barrage
   else if (k === 'b') tryBuild();
   else if (S.mode === 'play' && k === 'u') upgradeFloor(S.sel);        // U / R act on the selected weapon
-  else if (S.mode === 'play' && k === 'r') repairFloor(S.sel);
+  else if (S.mode === 'play' && k === 'r') { if (S.sel >= 0) repairFloor(S.sel); else repairAll(); }
+  else if (S.mode === 'play' && k >= '1' && k <= '9') { const sb = el.spSkills.children[+k - 1]; if (sb) sb.click(); }   // 1, 2, 3: the special weapons' skills
   else if ((k === 'enter' || k === ' ') && !(e.target instanceof HTMLButtonElement)) {
-    if (screen === 'start') go('chapters');
+    if (screen === 'start') $('btnStart').click();
     else if (S.mode === 'over' && performance.now() - overAt > 350) startRun(S.chapter);
     else if (S.mode === 'pause') togglePause();
   }
@@ -5699,7 +5833,7 @@ function tick(rdt) {
   }
   S.shake = Math.max(0, S.shake - rdt * 1.8); S.flash = Math.max(0, S.flash - rdt * 1.6);
   AudioSys.setMusic(S.mode === 'play' || S.mode === 'choice' ? (S.boss && !S.boss.dead ? 'boss' : 'play') : 'menu');
-  render(); syncHud();
+  render(); syncHud(); coachFrame();
   for (const draw of live) draw();                                    // armory / hero previews
 }
 
@@ -5756,6 +5890,7 @@ const ZH = {
   'Skyscraper': '摩天塔', 'Build the tower up to 6 floors': '把塔建到 6 层', 'Mythic Arsenal': '神话军械', 'Upgrade a weapon to Mk X': '把一件武器升到 Mk X',
   'Carpet Bomber': '地毯轰炸', 'Defeat 6 enemies with one explosion': '一次爆炸击败 6 个敌人', 'Daily Driver': '每日常客', 'Complete 3 daily challenges': '完成 3 次每日挑战',
   'Marathon': '马拉松', 'Reach wave 20 in Endless March': '在无尽进军中到达第 20 波', 'Earned': '已获得', 'Locked': '未解锁',
+  'Tap': '点击', 'Click': '点击', 'Space': '空格', 'Build': '建造', 'Weapon skills': '武器技能', 'Pause': '暂停',
   'Shop': '商店', 'Tower paint': '塔身涂装', 'Weapon skins': '武器皮肤', 'Vehicles': '载具', 'Tap again to buy': '再点一次购买', 'Standard': '标准',
   'Clear stages and chapters to earn tokens. More stars, more tokens.': '通关小关和章节获得代币，星星越多代币越多。',
   'Steel': '钢铁', 'Desert Camo': '沙漠迷彩', 'Jungle': '丛林迷彩', 'Arctic': '极地雪白', 'Neon Night': '霓虹之夜', 'Obsidian': '黑曜熔岩', 'Royal Gold': '皇家黄金', 'Strawberry Milk': '草莓牛奶', 'Lavender Dream': '薰衣草之梦',
@@ -5852,24 +5987,23 @@ function tr(str) {                          // English in, Chinese out (or the s
   return v;
 }
 // Every piece of interface text is a DOM text node: translate nodes as they appear, remember the English to switch back.
+// With a mouse in hand the English says "click" where the source text says "tap".
+function desk(s) { return TOUCH || !/\b[Tt]ap\b/.test(s) ? s : s.replace(/\bTap\b/g, 'Click').replace(/\btap\b/g, 'click'); }
+function loc(str) { return typeof str !== 'string' ? str : LANG === 'zh' ? tr(str) : desk(str); }     // what the screen shows for a piece of source text
 function trNode(n) {
-  const host = n.parentNode; if (!host || (host.closest && host.closest('[data-noi18n],.how'))) return;
+  const host = n.parentNode; if (!host || (host.closest && host.closest('[data-noi18n]'))) return;
   if (n._zh !== undefined && n.data !== n._zh && n.data !== n._en) n._en = n._zh = undefined;      // the game wrote new text
-  const src = n._en !== undefined ? n._en : n.data;
-  if (LANG === 'zh') { const z = tr(src); if (z !== src) { n._en = src; n._zh = z; if (n.data !== z) n.data = z; } }
-  else if (n._en !== undefined) { const en = n._en; n._en = n._zh = undefined; if (n.data !== en) n.data = en; }
+  const src = n._en !== undefined ? n._en : n.data, out = loc(src);                               // _zh: what is shown in place of the source
+  if (out !== src) { n._en = src; n._zh = out; if (n.data !== out) n.data = out; }
+  else if (n._en !== undefined) { n._en = n._zh = undefined; if (n.data !== src) n.data = src; }
 }
 function trTree(root) {
   if (root.nodeType === 3) { trNode(root); return; }
   if (root.nodeType !== 1) return;
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) trNode(n);
 }
-const HOW_EN = document.querySelector('.how').innerHTML;
-const HOW_ZH = '<li>高塔自动前进，炮塔自动开火。</li><li><b>点击任意位置</b>投掷炸弹。充满进度条后释放<b>弹幕</b>。</li>' +
-  '<li>用金币建造楼层。<b>点击塔上的武器</b>可升级或修理。</li><li>每层有独立血量。逐章通关可解锁武器和英雄，用星星学习<b>天赋</b>。</li>';
 function applyLang() {
   document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en';
-  document.querySelector('.how').innerHTML = LANG === 'zh' ? HOW_ZH : HOW_EN;
   for (const b of document.querySelectorAll('.langBtn')) b.textContent = LANG === 'zh' ? 'English' : '中文';
   trTree(el.ui);
 }
@@ -5883,7 +6017,7 @@ setTimeout(gunNote, 700);
 
 // boot
 el.mute.classList.toggle('muted', AudioSys.muted);
-resize(); newRun(); showBest();
+resize(); newRun(); startDemo(); showBest();
 requestAnimationFrame(t => { lastT = t; requestAnimationFrame(frame); });
 
 if (location.hash === '#debug') {            // test hook: lets a script drive the simulation
