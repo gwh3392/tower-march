@@ -1744,7 +1744,8 @@ function buildWave(n) {
   const q = [], boss = isBossWave(n), D = diff(n);
   if (n === 1 && S.gm !== 'boss') {            // a gentle opener that always pays for floor 2
     const cnt = Math.round(9 * D.bud);
-    for (let i = 0; i < cnt; i++) q.push({ type: S.chapter >= 3 && i % 4 === 3 ? 'runner' : 'walker', gap: 1.35 / D.bud });
+    // They come in threes (the same number over the same time as a steady trickle): a first target worth a bomb.
+    for (let i = 0; i < cnt; i++) q.push({ type: S.chapter >= 3 && i % 4 === 3 ? 'runner' : 'walker', gap: (i % 3 === 2 ? 2.95 : 0.55) / D.bud });
     return q;
   }
   let budget = (CFG.BUD_A + n * CFG.BUD_B + n * n * CFG.BUD_C) * D.bud; if (boss) budget *= CFG.BOSS_BUD;
