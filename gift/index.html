@@ -5549,7 +5549,7 @@ function drawThumb(cv, c, locked) {           // a chapter's place in miniature:
   g.fillStyle = p.groundTop; g.fillRect(0, gy, w, 3);
   g.fillStyle = p.dash; for (let x = 10; x < w; x += 46) g.fillRect(x, gy + (h - gy) * 0.55, 22, 3);
   if (locked) {                                // not open yet: dimmed, under a padlock
-    g.fillStyle = 'rgba(10,6,16,.5)'; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(10,6,16,.3)'; g.fillRect(0, 0, w, h);
     const cx = w / 2, cy = h / 2 + 5;
     g.strokeStyle = '#fff'; g.lineWidth = 6; g.beginPath(); g.arc(cx, cy - 12, 12, Math.PI, 0); g.stroke();
     g.fillStyle = '#fff'; rr(g, cx - 19, cy - 12, 38, 30, 6); g.fill();
